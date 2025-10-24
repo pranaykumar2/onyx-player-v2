@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ONYX Professional Video Player</title>
+    
+    <!-- Meta Tags for PWA -->
+    <meta name="description" content="ONYX - Professional video player with HLS, DASH, and advanced streaming capabilities">
+    <meta name="theme-color" content="#FFD700">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Premium Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Video.js 8 CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    
+    <!-- Custom Enhanced Styles -->
+    <link rel="stylesheet" href="enhanced-styles.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFD700'/%3E%3Cstop offset='100%25' stop-color='%23FFA500'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23g)'/%3E%3Cpolygon points='35,25 35,75 75,50' fill='%23000'/%3E%3C/svg%3E">
+    
+    <style>
+        /* Critical CSS for immediate loading */
+        body { 
+            margin: 0; 
+            background: #000; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: #fff;
+        }
+        
+        .loading-logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: 0.1em;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 215, 0, 0.2);
+            border-top: 3px solid #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Enhanced Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-logo">ONYX</div>
+            <div class="loading-spinner"></div>
+            <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Initializing Premium Experience...</div>
+        </div>
+    </div>
+
+    <!-- Main Video Container -->
+    <div class="video-container" id="videoContainer">
+        
+        <!-- Enhanced Top Bar -->
+        <div class="top-bar" id="topBar">
+            <div class="top-bar-content">
+                <!-- Brand Section -->
+                <div class="brand-section">
+                    <div class="brand-logo">
+                        <div class="logo-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="logo-text">
+                            <span class="brand-name">ONYX</span>
+                            <span class="brand-subtitle">Professional</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Info -->
+                    <div class="video-info" id="videoInfo">
+                        <div class="video-title" id="videoTitle"></div>
+                        <div class="video-meta" id="videoMeta">
+                            <span class="video-quality" id="videoQuality"></span>
+                            <span class="video-fps" id="videoFps"></span>
+                            <span class="video-codec" id="videoCodec"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Window Controls -->
+                <div class="window-controls">
+                    <button class="window-btn minimize-btn" id="minimizeBtn" aria-label="Minimize">
+                        <svg width="12" height="12" viewBox="0 0 12 12">
+                            <path d="M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <button class="window-btn maximize-btn" id="maximizeBtn" aria-label="Maximize">
+                        <svg width="12" height="12" viewBox="0 0 12 12">
+                            <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1.5" fill="none" rx="1"/>
+                        </svg>
+                    </button>
+                    <button class="window-btn close-btn" id="closeBtn" aria-label="Close">
+                        <svg width="12" height="12" viewBox="0 0 12 12">
+                            <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Progress Indicator -->
+            <div class="top-progress" id="topProgress">
+                <div class="top-progress-fill" id="topProgressFill"></div>
+            </div>
+        </div>
+
+        <!-- Video Element with Enhanced Container -->
+        <div class="video-wrapper" id="videoWrapper">
+            <video 
+                id="videoPlayer" 
+                class="video-js enhanced-player" 
+                data-setup='{}' 
+                preload="metadata"
+                playsinline
+                webkit-playsinline
+                crossorigin="anonymous">
+                <p class="vjs-no-js">
+                    To view this video please enable JavaScript, and consider upgrading to a
+                    web browser that supports HTML5 video.
+                </p>
+            </video>
+            
+            <!-- Enhanced Video Overlay -->
+            <div class="video-overlay" id="videoOverlay">
+                
+                <!-- Loading State -->
+                <div class="loading-state" id="loadingState">
+                    <div class="loading-animation">
+                        <div class="pulse-rings">
+                            <div class="pulse-ring"></div>
+                            <div class="pulse-ring"></div>
+                            <div class="pulse-ring"></div>
+                        </div>
+                        <!-- <div class="loading-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                            </svg>
+                        </div> -->
+                    </div>
+                    <div class="loading-text">
+                        <div class="loading-title">Loading Video</div>
+                        <div class="loading-subtitle">Please wait...</div>
+                    </div>
+                </div>
+                
+                <!-- Center Play Button -->
+                <div class="center-play-button" id="centerPlayButton">
+                    <div class="play-button-container">
+                        <div class="play-button-bg"></div>
+                        <div class="play-button-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <polygon points="8,5 19,12 8,19" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="play-button-ring"></div>
+                    </div>
+                    <div class="play-button-text">Click to Play</div>
+                </div>
+                
+                <!-- Brand Watermark -->
+                <div class="brand-watermark" id="brandWatermark">
+                    <div class="watermark-content">
+                        <div class="watermark-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <span class="watermark-text">ONYX</span>
+                    </div>
+                </div>
+                
+                <!-- Touch Gesture Indicators -->
+                <div class="gesture-indicators" id="gestureIndicators">
+                    <div class="gesture-indicator volume-gesture" id="volumeGesture">
+                        <div class="gesture-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        </div>
+                        <div class="gesture-text">Volume</div>
+                        <div class="gesture-value" id="volumeGestureValue">50%</div>
+                    </div>
+                    
+                    <div class="gesture-indicator brightness-gesture" id="brightnessGesture">
+                        <div class="gesture-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </div>
+                        <div class="gesture-text">Brightness</div>
+                        <div class="gesture-value" id="brightnessGestureValue">100%</div>
+                    </div>
+                    
+                    <div class="gesture-indicator seek-gesture" id="seekGesture">
+                        <div class="gesture-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                        </div>
+                        <div class="gesture-text">Seek</div>
+                        <div class="gesture-value" id="seekGestureValue">+10s</div>
+                    </div>
+                </div>
+                
+                <!-- Skip Indicators -->
+                <div class="skip-indicators">
+                    <div class="skip-indicator skip-backward" id="skipBackward">
+                        <div class="skip-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <polygon points="19,20 9,12 19,4"/>
+                                <line x1="5" y1="19" x2="5" y2="5"/>
+                            </svg>
+                        </div>
+                        <div class="skip-text">-10s</div>
+                    </div>
+                    
+                    <div class="skip-indicator skip-forward" id="skipForward">
+                        <div class="skip-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <polygon points="5,4 15,12 5,20"/>
+                                <line x1="19" y1="5" x2="19" y2="19"/>
+                            </svg>
+                        </div>
+                        <div class="skip-text">+10s</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Controls Bar -->
+        <div class="controls-bar" id="controlsBar">
+            <!-- Enhanced Progress Bar -->
+            <div class="progress-section">
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-track">
+                        <div class="progress-buffer" id="progressBuffer"></div>
+                        <div class="progress-played" id="progressPlayed"></div>
+                        <div class="progress-handle" id="progressHandle">
+                            <div class="handle-dot"></div>
+                        </div>
+                        <div class="progress-preview" id="progressPreview">
+                            <div class="preview-thumbnail" id="previewThumbnail"></div>
+                            <div class="preview-time" id="previewTime">00:00</div>
+                        </div>
+                    </div>
+                    <div class="chapter-markers" id="chapterMarkers"></div>
+                </div>
+            </div>
+            
+            <!-- Main Controls -->
+            <div class="controls-content">
+                <div class="controls-row">
+                    
+                    <!-- Left Controls -->
+                    <div class="controls-group left-controls">
+                        <button class="control-btn play-pause-btn" id="playPauseBtn" aria-label="Play/Pause">
+                            <div class="btn-content">
+                                <svg class="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <polygon points="8,5 19,12 8,19" fill="currentColor"/>
+                                </svg>
+                                <svg class="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display: none;">
+                                    <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                                    <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                                </svg>
+                            </div>
+                        </button>
+                        
+                        <button class="control-btn stop-btn" id="stopBtn" aria-label="Stop">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/>
+                            </svg>
+                        </button>
+                        
+                        <div class="skip-controls">
+                            <button class="control-btn skip-btn" id="skipBackwardBtn" aria-label="Skip Backward 10s">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                    <path d="M11 17l-5-5 5-5"/>
+                                    <path d="M18 17l-5-5 5-5"/>
+                                </svg>
+                                <span class="skip-label">10</span>
+                            </button>
+                            
+                            <button class="control-btn skip-btn" id="skipForwardBtn" aria-label="Skip Forward 10s">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                    <path d="M13 7l5 5-5 5"/>
+                                    <path d="M6 7l5 5-5 5"/>
+                                </svg>
+                                <span class="skip-label">10</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Enhanced Time Display -->
+                        <div class="time-display">
+                            <span class="time-current" id="timeCurrent">00:00</span>
+                            <span class="time-separator">/</span>
+                            <span class="time-duration" id="timeDuration">00:00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Center Controls -->
+                    <div class="controls-group center-controls">
+                        <!-- Live Indicator -->
+                        <div class="live-indicator" id="liveIndicator" style="display: none;">
+                            <div class="live-dot"></div>
+                            <span class="live-text">LIVE</span>
+                        </div>
+                        
+                        <!-- Quality Badge -->
+                        <div class="quality-badge" id="qualityBadge">
+                            <span class="quality-text" id="qualityText">AUTO</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Controls -->
+                    <div class="controls-group right-controls">
+                        <!-- Enhanced Volume Control -->
+                        <div class="volume-control" id="volumeControl">
+                            <button class="control-btn volume-btn" id="volumeBtn" aria-label="Volume">
+                                <svg class="volume-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                                    <path class="volume-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                    <path class="volume-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                                </svg>
+                            </button>
+                            <div class="volume-slider-container">
+                                <div class="volume-slider" id="volumeSlider">
+                                    <div class="volume-track">
+                                        <div class="volume-fill" id="volumeFill"></div>
+                                        <div class="volume-handle" id="volumeHandle"></div>
+                                    </div>
+                                </div>
+                                <div class="volume-display" id="volumeDisplay">100%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Speed Control -->
+                        <div class="speed-control" id="speedControl">
+                            <button class="control-btn speed-btn" id="speedBtn" aria-label="Playback Speed">
+                                <span class="speed-text" id="speedText">1×</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Tracks Button -->
+                        <button class="control-btn tracks-btn" id="tracksBtn" aria-label="Audio & Subtitles">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M7 8h10M7 12h4M7 16h7"/>
+                                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Settings Button -->
+                        <button class="control-btn settings-btn" id="settingsBtn" aria-label="Settings">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Picture-in-Picture -->
+                        <button class="control-btn pip-btn" id="pipBtn" aria-label="Picture-in-Picture">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M8 3a2 2 0 0 0-2 2v3m18 8V5a2 2 0 0 0-2-2H5"/>
+                                <path d="M16 14h6v4a2 2 0 0 1-2 2h-4z"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Fullscreen Button -->
+                        <button class="control-btn fullscreen-btn" id="fullscreenBtn" aria-label="Fullscreen">
+                            <svg class="expand-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                            </svg>
+                            <svg class="compress-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display: none;">
+                                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Menu Button -->
+                        <button class="control-btn menu-btn" id="menuBtn" aria-label="Menu">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="1"/>
+                                <circle cx="19" cy="12" r="1"/>
+                                <circle cx="5" cy="12" r="1"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Modal System -->
+        
+        <!-- Load Video Modal -->
+        <div class="modal-overlay" id="loadVideoModal">
+            <div class="modal-container">
+                <div class="modal-content load-video-modal">
+                    <div class="modal-header">
+                        <h2 class="modal-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polygon points="10,8 16,12 10,16"/>
+                            </svg>
+                            Load Video
+                        </h2>
+                        <button class="modal-close" id="closeLoadVideoModal" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <label for="videoUrlInput">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </svg>
+                                Video URL (MP4, HLS, DASH)
+                            </label>
+                            <input type="url" id="videoUrlInput" placeholder="https://example.com/video.m3u8" autocomplete="off">
+                            <div class="input-hint">Supports: MP4, WebM, HLS (.m3u8), DASH (.mpd)</div>
+                        </div>
+                        
+                        <div class="divider">
+                            <span>OR</span>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="videoFileInput">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14,2 14,8 20,8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10,9 9,9 8,9"/>
+                                </svg>
+                                Upload Local File
+                            </label>
+                            <div class="file-input-container">
+                                <input type="file" id="videoFileInput" accept="video/*" hidden>
+                                <button class="file-input-btn" id="fileInputBtn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7,10 12,15 17,10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    Choose File
+                                </button>
+                                <span class="file-name" id="fileName">No file selected</span>
+                            </div>
+                        </div>
+                        
+                        <!-- URL Presets -->
+                        <div class="url-presets">
+                            <div class="presets-header">
+                                <h4>Sample Streams</h4>
+                            </div>
+                            <div class="presets-grid">
+                                <button class="preset-btn" data-url="https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8">
+                                    <div class="preset-icon">🎬</div>
+                                    <div class="preset-info">
+                                        <div class="preset-name">Tears of Steel</div>
+                                        <div class="preset-type">HLS Stream</div>
+                                    </div>
+                                </button>
+                                <button class="preset-btn" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+                                    <div class="preset-icon">🐰</div>
+                                    <div class="preset-info">
+                                        <div class="preset-name">Big Buck Bunny</div>
+                                        <div class="preset-type">MP4 Video</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelLoadVideo">Cancel</button>
+                        <button class="btn btn-primary" id="loadVideoBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <polygon points="8,5 19,12 8,19"/>
+                            </svg>
+                            Load Video
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Modal -->
+        <div class="modal-overlay" id="settingsModal">
+            <div class="modal-container large">
+                <div class="modal-content settings-modal">
+                    <div class="modal-header">
+                        <h2 class="modal-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            Player Settings
+                        </h2>
+                        <button class="modal-close" id="closeSettingsModal" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="settings-tabs">
+                            <button class="tab-btn active" data-tab="video">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <polygon points="23 7 16 12 23 17"/>
+                                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                                </svg>
+                                Video
+                            </button>
+                            <button class="tab-btn" data-tab="audio">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                </svg>
+                                Audio
+                            </button>
+                            <button class="tab-btn" data-tab="subtitles">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M7 8h10M7 12h4M7 16h7"/>
+                                    <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                Subtitles
+                            </button>
+                            <button class="tab-btn" data-tab="interface">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <line x1="9" y1="9" x2="9" y2="9.01"/>
+                                    <line x1="15" y1="9" x2="15" y2="9.01"/>
+                                    <line x1="12" y1="17" x2="12" y2="17.01"/>
+                                </svg>
+                                Interface
+                            </button>
+                        </div>
+                        
+                        <div class="settings-content" id="settingsContent">
+                            <!-- Settings content will be dynamically loaded -->
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="resetSettings">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                            Reset
+                        </button>
+                        <button class="btn btn-primary" id="applySettings">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <polyline points="20,6 9,17 4,12"/>
+                            </svg>
+                            Apply Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tracks Modal -->
+        <div class="modal-overlay" id="tracksModal">
+            <div class="modal-container">
+                <div class="modal-content tracks-modal">
+                    <div class="modal-header">
+                        <h2 class="modal-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M7 8h10M7 12h4M7 16h7"/>
+                                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                            Audio & Subtitles
+                        </h2>
+                        <button class="modal-close" id="closeTracksModal" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div id="tracksContent">
+                            <!-- Tracks content will be dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div class="context-menu" id="contextMenu">
+            <div class="context-menu-item" id="contextPlay">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <polygon points="8,5 19,12 8,19"/>
+                </svg>
+                Play
+            </div>
+            <div class="context-menu-item" id="contextPause">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                Pause
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" id="contextFullscreen">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                Fullscreen
+            </div>
+            <div class="context-menu-item" id="contextPip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 3a2 2 0 0 0-2 2v3m18 8V5a2 2 0 0 0-2-2H5"/>
+                    <path d="M16 14h6v4a2 2 0 0 1-2 2h-4z"/>
+                </svg>
+                Picture-in-Picture
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" id="contextCopyUrl">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy Video URL
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="enhanced-player.js"></script>
+</body>
+</html>
