@@ -86,6 +86,12 @@ class ONYXEnhancedPlayer {
         // Simple retry flag
         this.isRetrying = false;
 
+        // Track object URLs for cleanup (Fix #6)
+        this.objectUrls = new Set();
+        
+        // Pending seek time for touch gesture (Fix #1)
+        this.pendingSeekTime = null;
+
         // Initialize
         this.init();
         
@@ -102,10 +108,16 @@ class ONYXEnhancedPlayer {
     cleanup() {
         console.log('🧹 Cleaning up ONYX Enhanced Player...');
         
-        // Clear all timers
+        // Clear all timers and intervals
         Object.values(this.timers).forEach(timer => {
-            if (timer) clearTimeout(timer);
+            if (timer) {
+                clearTimeout(timer);
+                clearInterval(timer);
+            }
         });
+        
+        // Revoke all tracked object URLs
+        this.revokeObjectUrls();
         
         // Clean up player
         if (this.player && !this.player.isDisposed()) {
@@ -325,6 +337,12 @@ class ONYXEnhancedPlayer {
                 this.player.ready(() => {
                     console.log('📹 Video.js player ready');
                     
+                    // Setup enhanced error handling (Fix #4)
+                    this.setupEnhancedErrorHandling();
+                    
+                    // Load saved preferences (Fix #5)
+                    this.loadPreferences();
+                    
                     // Apply initial settings
                     this.applyInitialSettings();
                     
@@ -345,40 +363,41 @@ class ONYXEnhancedPlayer {
     setupEnhancedErrorHandling() {
         this.player.on('error', () => {
             const error = this.player.error();
-            if (error) {
-                console.error('📺 Video.js error:', error);
+            if (!error) return;
+            
+            console.error('📺 Video.js error:', error);
+            const currentSrc = this.player.currentSrc();
+            
+            // Enhanced CORS error detection — no blind retry
+            if (this.isCorsError(error)) {
+                console.warn('🚫 CORS error detected for:', currentSrc);
                 
-                // Enhanced CORS error detection
-                if (this.isCorsError(error)) {
-                    console.warn('🚫 CORS error detected, attempting alternative loading methods...');
-                    this.showToast(
-                        'Video blocked by CORS policy. Trying alternative methods...', 
-                        'warning', 
-                        'CORS Issue'
-                    );
-                    
-                    // Attempt to reload with enhanced CORS handling
-                    const currentSrc = this.player.currentSrc();
-                    if (currentSrc && !this.isRetrying) {
-                        this.isRetrying = true;
-                        // Simple retry with the same URL
-                        setTimeout(() => {
-                            const type = this.detectVideoType(currentSrc);
-                            const title = this.extractVideoTitle(currentSrc);
-                            console.log('🔄 Retrying video load...');
-                            this.player.src({ src: currentSrc, type });
-                        }, 1000);
+                // Provide clear, actionable messaging instead of retrying
+                let message = 'This video cannot be played due to CORS restrictions on the server.';
+                let suggestion = '';
+                
+                if (currentSrc) {
+                    try {
+                        const host = new URL(currentSrc).hostname;
+                        suggestion = ` The server "${host}" does not allow cross-origin playback. ` +
+                            'Try downloading the file and loading it locally instead.';
+                    } catch (e) {
+                        suggestion = ' Try downloading the file and loading it locally.';
                     }
-                } else {
-                    // Handle other types of errors with enhanced messaging
-                    this.handleEnhancedVideoError(error);
                 }
+                
+                this.showToast(
+                    message + suggestion,
+                    'warning',
+                    'CORS Restriction',
+                    8000
+                );
+                this.setState({ isLoading: false, isBuffering: false });
+                this.hideLoadingState();
+            } else {
+                // Handle other types of errors with enhanced messaging
+                this.handleEnhancedVideoError(error);
             }
-        });
-
-        // Additional error event handlers
-        this.player.on('loadstart', () => {
-            this.isRetrying = false; // Reset retry flag on new load
         });
     }
 
@@ -389,19 +408,15 @@ class ONYXEnhancedPlayer {
             'cors',
             'cross-origin',
             'access-control-allow-origin',
-            'network error',
-            'fetch error',
             'preflight',
             'opaque response',
             'blocked by cors policy'
         ];
         
         const errorMessage = (error.message || '').toLowerCase();
-        const errorCode = error.code;
         
-        // MediaError codes that often indicate CORS issues
-        if (errorCode === 2 || errorCode === 4) return true;
-        
+        // Only flag as CORS if the error message explicitly mentions CORS-related terms.
+        // Error codes 2 (network) and 4 (src not supported) are too broad on their own.
         return corsIndicators.some(indicator => errorMessage.includes(indicator));
     }
 
@@ -453,8 +468,7 @@ class ONYXEnhancedPlayer {
         this.player.on('audiotrackchange', () => this.onAudioTrackChange());
         this.player.on('texttrackchange', () => this.onTextTrackChange());
         
-        // Error handling
-        this.player.on('error', (error) => this.onError(error));
+        // Error handling is managed by setupEnhancedErrorHandling()
         
         // Fullscreen events
         this.player.on('fullscreenchange', () => this.onFullscreenChange());
@@ -731,6 +745,11 @@ class ONYXEnhancedPlayer {
             const touchDuration = Date.now() - touchStartTime;
             
             if (this.touch.isGesturing) {
+                // Commit pending seek if gesture was a seek (Fix #1)
+                if (this.touch.gestureType === 'seek' && this.pendingSeekTime !== null) {
+                    this.seekToTime(this.pendingSeekTime);
+                    this.pendingSeekTime = null;
+                }
                 this.hideGestureIndicators();
             } else if (touchDuration < 300 && !this.touch.isGesturing) {
                 // Single tap - toggle controls
@@ -765,8 +784,31 @@ class ONYXEnhancedPlayer {
         
         this.showGestureIndicator('seek', `${seekAmount > 0 ? '+' : ''}${seekAmount}s`);
         
-        // Preview seek without actually seeking until gesture ends
+        // Store pending seek time — committed on touchend (Fix #1)
+        this.pendingSeekTime = newTime;
+        
+        // Update progress bar preview visually without committing
         this.updateSeekPreview(newTime);
+    }
+
+    /**
+     * Visually preview a seek position on the progress bar without committing.
+     * Fix #1: This method was called but never implemented.
+     */
+    updateSeekPreview(time) {
+        if (!this.elements.progressPlayed || !this.state.duration) return;
+        
+        const percentage = (time / this.state.duration) * 100;
+        this.elements.progressPlayed.style.width = `${percentage}%`;
+        
+        if (this.elements.progressHandle) {
+            this.elements.progressHandle.style.left = `${percentage}%`;
+        }
+        
+        // Update time display to show the preview position
+        if (this.elements.timeCurrent) {
+            this.elements.timeCurrent.textContent = this.formatTime(time);
+        }
     }
 
     handleVolumeGesture(delta) {
@@ -856,6 +898,23 @@ class ONYXEnhancedPlayer {
                 indicator.classList.remove('visible');
             }, 600);
         }
+    }
+
+    /**
+     * Hide both skip indicators immediately.
+     * Fix #2: This method was called by onSeeked() but never implemented.
+     */
+    hideSkipIndicators() {
+        const indicators = [
+            this.elements.skipBackward,
+            this.elements.skipForward
+        ];
+
+        indicators.forEach(indicator => {
+            if (indicator) {
+                indicator.classList.remove('visible');
+            }
+        });
     }
 
     /* ==========================================================================
@@ -1134,24 +1193,7 @@ class ONYXEnhancedPlayer {
         console.error('❌ Video error:', error);
         this.setState({ isLoading: false, isBuffering: false });
         this.hideLoadingState();
-        
-        // Check if it's a CORS error
-        const playerError = this.player.error();
-        if (playerError && (playerError.code === 2 || playerError.code === 4)) {
-            const currentSrc = this.player.currentSrc();
-            if (currentSrc && (currentSrc.includes('seedr.cc') || currentSrc.includes('rd10.seedr') || currentSrc.includes('rd11.seedr'))) {
-                this.showToast(
-                    'CORS error with Seedr link. For testing, try: Chrome with --disable-web-security --user-data-dir=/tmp/chrome_dev_test', 
-                    'warning', 
-                    'CORS Issue',
-                    8000
-                );
-            } else {
-                this.showToast('Video playback error occurred', 'error', 'Playback Error');
-            }
-        } else {
-            this.showToast('Video playback error occurred', 'error', 'Playback Error');
-        }
+        // Detailed error messaging is handled by setupEnhancedErrorHandling()
     }
 
     onFullscreenChange() {
@@ -1876,19 +1918,28 @@ class ONYXEnhancedPlayer {
             // Display video title
             this.updateVideoTitle(videoTitle);
             
-            // For Seedr and similar hosts, try different approaches
-            let finalSrc = src;
-            if (src.includes('seedr.cc') || src.includes('rd10.seedr') || src.includes('rd11.seedr')) {
-                console.log('🌱 Detected Seedr link, using direct approach...');
-                // Try without any modifications first (like your original)
-                finalSrc = src;
+            // Revoke previous object URLs to free resources (Fix #6)
+            this.revokeObjectUrls();
+            
+            // Track blob URLs for cleanup
+            if (src.startsWith('blob:')) {
+                this.objectUrls.add(src);
             }
             
-            // Load the video exactly like your original
-            console.log('Loading video URL:', finalSrc, 'Type:', type, 'Title:', videoTitle);
-            this.player.src({ src: finalSrc, type: type });
+            // Manage crossorigin: only HLS needs it for VHS fetch requests (Fix #4)
+            if (this.video) {
+                if (type === 'application/x-mpegURL') {
+                    this.video.setAttribute('crossorigin', 'anonymous');
+                } else {
+                    this.video.removeAttribute('crossorigin');
+                }
+            }
             
-            // Reset player state exactly like your original
+            // Load the video
+            console.log('Loading video URL:', src, 'Type:', type, 'Title:', videoTitle);
+            this.player.src({ src: src, type: type });
+            
+            // Reset player state
             this.player.load();
             
             // Reset state
@@ -1980,6 +2031,14 @@ class ONYXEnhancedPlayer {
         if (url.includes('.m3u8')) {
             return 'application/x-mpegURL';
         } else if (url.includes('.mpd')) {
+            // DASH is not currently supported — no DASH engine loaded (Fix #3)
+            console.warn('⚠️ DASH (.mpd) is not supported. Please use HLS (.m3u8) or MP4.');
+            this.showToast(
+                'DASH playback is not supported. Use HLS (.m3u8) or direct MP4 instead.',
+                'warning',
+                'Unsupported Format',
+                5000
+            );
             return 'application/dash+xml';
         } else if (url.includes('.webm')) {
             return 'video/webm';
@@ -2858,9 +2917,12 @@ class ONYXEnhancedPlayer {
             
             // Create a text track for the subtitle file
             try {
+                const subtitleUrl = URL.createObjectURL(file);
+                this.objectUrls.add(subtitleUrl); // Track for cleanup (Fix #6)
+                
                 const track = this.player.addRemoteTextTrack({
                     kind: 'subtitles',
-                    src: URL.createObjectURL(file),
+                    src: subtitleUrl,
                     srclang: 'en',
                     label: file.name,
                     default: true
@@ -2885,8 +2947,61 @@ class ONYXEnhancedPlayer {
        Settings Management
        ========================================================================== */
 
+    /**
+     * Gather all settings from the active forms, apply them, and persist to localStorage.
+     * Fix #5: Previously just showed a toast without applying anything.
+     */
     applySettings() {
-        this.showToast('Settings applied successfully', 'success', 'Settings');
+        // Video settings
+        const playbackSpeedSelect = document.getElementById('playbackSpeedSelect');
+        if (playbackSpeedSelect) {
+            const rate = parseFloat(playbackSpeedSelect.value);
+            this.player.playbackRate(rate);
+            this.setState({ playbackRate: rate });
+        }
+
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        if (brightnessSlider) this.setBrightness(parseInt(brightnessSlider.value));
+
+        const contrastSlider = document.getElementById('contrastSlider');
+        if (contrastSlider) this.setContrast(parseInt(contrastSlider.value));
+
+        const saturationSlider = document.getElementById('saturationSlider');
+        if (saturationSlider) this.setSaturation(parseInt(saturationSlider.value));
+
+        // Audio settings
+        const volumeSettingSlider = document.getElementById('volumeSettingSlider');
+        if (volumeSettingSlider) this.setVolume(parseInt(volumeSettingSlider.value) / 100);
+
+        // Interface settings
+        const autoHideSelect = document.getElementById('autoHideSelect');
+        if (autoHideSelect) {
+            this.settings.controlsHideDelay = autoHideSelect.value === 'never' ? 0 : parseInt(autoHideSelect.value);
+        }
+
+        const skipDurationSelect = document.getElementById('skipDurationSelect');
+        if (skipDurationSelect) this.settings.seekStep = parseInt(skipDurationSelect.value);
+
+        const touchSensitivitySlider = document.getElementById('touchSensitivitySlider');
+        if (touchSensitivitySlider) this.settings.touchSensitivity = parseInt(touchSensitivitySlider.value);
+
+        const watermarkSelect = document.getElementById('watermarkSelect');
+        if (watermarkSelect) this.applyWatermarkSetting(watermarkSelect.value);
+
+        // Subtitle settings
+        const subtitleSizeSlider = document.getElementById('subtitleSizeSlider');
+        if (subtitleSizeSlider) this.applySubtitleSize(parseInt(subtitleSizeSlider.value));
+
+        const subtitleColorPicker = document.getElementById('subtitleColorPicker');
+        if (subtitleColorPicker) this.applySubtitleColor(subtitleColorPicker.value);
+
+        const subtitleBackgroundSelect = document.getElementById('subtitleBackgroundSelect');
+        if (subtitleBackgroundSelect) this.applySubtitleBackground(subtitleBackgroundSelect.value);
+
+        // Persist all preferences to localStorage
+        this.savePreferences();
+
+        this.showToast('Settings applied and saved', 'success', 'Settings');
         this.hideModal();
     }
 
@@ -2914,10 +3029,141 @@ class ONYXEnhancedPlayer {
         this.setVolume(1);
         this.applyVideoFilters();
 
+        // Clear persisted preferences
+        this.clearPreferences();
+
         // Refresh settings UI
         this.loadSettingsContent();
 
         this.showToast('Settings reset to defaults', 'info', 'Settings');
+    }
+
+    /* ==========================================================================
+       Preferences Persistence (Fix #5)
+       ========================================================================== */
+
+    savePreferences() {
+        try {
+            const prefs = {
+                state: {
+                    volume: this.state.volume,
+                    brightness: this.state.brightness,
+                    contrast: this.state.contrast,
+                    saturation: this.state.saturation,
+                    playbackRate: this.state.playbackRate
+                },
+                settings: {
+                    controlsHideDelay: this.settings.controlsHideDelay,
+                    seekStep: this.settings.seekStep,
+                    touchSensitivity: this.settings.touchSensitivity
+                }
+            };
+            localStorage.setItem('onyx-player-prefs', JSON.stringify(prefs));
+            console.log('💾 Preferences saved');
+        } catch (e) {
+            console.warn('Could not save preferences:', e);
+        }
+    }
+
+    loadPreferences() {
+        try {
+            const raw = localStorage.getItem('onyx-player-prefs');
+            if (!raw) return;
+
+            const prefs = JSON.parse(raw);
+            
+            if (prefs.state) {
+                if (prefs.state.volume !== undefined) this.setState({ volume: prefs.state.volume });
+                if (prefs.state.brightness !== undefined) this.setState({ brightness: prefs.state.brightness });
+                if (prefs.state.contrast !== undefined) this.setState({ contrast: prefs.state.contrast });
+                if (prefs.state.saturation !== undefined) this.setState({ saturation: prefs.state.saturation });
+                if (prefs.state.playbackRate !== undefined) this.setState({ playbackRate: prefs.state.playbackRate });
+            }
+            
+            if (prefs.settings) {
+                if (prefs.settings.controlsHideDelay !== undefined) this.settings.controlsHideDelay = prefs.settings.controlsHideDelay;
+                if (prefs.settings.seekStep !== undefined) this.settings.seekStep = prefs.settings.seekStep;
+                if (prefs.settings.touchSensitivity !== undefined) this.settings.touchSensitivity = prefs.settings.touchSensitivity;
+            }
+            
+            console.log('📂 Preferences loaded from localStorage');
+        } catch (e) {
+            console.warn('Could not load preferences:', e);
+        }
+    }
+
+    clearPreferences() {
+        try {
+            localStorage.removeItem('onyx-player-prefs');
+            console.log('🗑️ Preferences cleared');
+        } catch (e) {
+            console.warn('Could not clear preferences:', e);
+        }
+    }
+
+    applyWatermarkSetting(value) {
+        if (!this.elements.brandWatermark) return;
+        switch (value) {
+            case 'always':
+                this.elements.brandWatermark.style.display = 'flex';
+                this.elements.brandWatermark.style.opacity = '0.6';
+                break;
+            case 'playing':
+                this.elements.brandWatermark.style.display = 'flex';
+                this.elements.brandWatermark.style.opacity = this.state.isPlaying ? '0.3' : '0.6';
+                break;
+            case 'never':
+                this.elements.brandWatermark.style.display = 'none';
+                break;
+        }
+    }
+
+    applySubtitleSize(size) {
+        const textTrackDisplay = this.elements.videoWrapper?.querySelector('.vjs-text-track-display');
+        if (textTrackDisplay) {
+            textTrackDisplay.style.fontSize = `${size}px`;
+        }
+    }
+
+    applySubtitleColor(color) {
+        const textTrackDisplay = this.elements.videoWrapper?.querySelector('.vjs-text-track-display');
+        if (textTrackDisplay) {
+            textTrackDisplay.style.color = color;
+        }
+    }
+
+    applySubtitleBackground(value) {
+        const textTrackDisplay = this.elements.videoWrapper?.querySelector('.vjs-text-track-display');
+        if (textTrackDisplay) {
+            switch (value) {
+                case 'none':
+                    textTrackDisplay.style.backgroundColor = 'transparent';
+                    break;
+                case 'semi':
+                    textTrackDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                    break;
+                case 'solid':
+                    textTrackDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Revoke all tracked object URLs to free resources.
+     * Fix #6: Object URLs were never revoked.
+     */
+    revokeObjectUrls() {
+        if (!this.objectUrls || this.objectUrls.size === 0) return;
+        this.objectUrls.forEach(url => {
+            try {
+                URL.revokeObjectURL(url);
+                console.log('🧹 Revoked object URL');
+            } catch (e) {
+                // Ignore revocation errors
+            }
+        });
+        this.objectUrls.clear();
     }
 
     /* ==========================================================================
@@ -3227,11 +3473,16 @@ class ONYXEnhancedPlayer {
     }
 
     applyInitialSettings() {
-        // Apply default video filters
+        // Apply video filters (uses state values from loaded preferences)
         this.applyVideoFilters();
         
-        // Set initial volume
+        // Set initial volume from state (may be from persisted preferences)
         this.setVolume(this.state.volume);
+        
+        // Apply persisted playback rate if non-default
+        if (this.state.playbackRate !== 1) {
+            this.player.playbackRate(this.state.playbackRate);
+        }
         
         // Update all UI elements
         this.updatePlayPauseButton();
@@ -3300,23 +3551,51 @@ class ONYXEnhancedPlayer {
 
         console.log('🧹 Destroying ONYX Enhanced Player...');
 
-        // Clear all timers
-        Object.values(this.timers).forEach(timer => {
-            if (timer) clearTimeout(timer);
-        });
-
-        // Remove event listeners
-        Object.entries(this.boundHandlers).forEach(([event, handler]) => {
-            if (event.startsWith('handle')) {
-                const eventName = event.replace('handle', '').toLowerCase();
-                if (eventName === 'keydown') {
-                    document.removeEventListener('keydown', handler);
-                } else if (eventName === 'resize') {
-                    window.removeEventListener('resize', handler);
-                }
-                // Add other event removals as needed
+        // Clear all timers and intervals (Fix #6)
+        Object.entries(this.timers).forEach(([key, timer]) => {
+            if (timer) {
+                clearTimeout(timer);
+                clearInterval(timer); // Safe to call on timeout IDs too
             }
         });
+        this.timers = {};
+
+        // Revoke all tracked object URLs (Fix #6)
+        this.revokeObjectUrls();
+
+        // Remove ALL registered event listeners (Fix #6)
+        if (this.boundHandlers.handleKeyDown) {
+            document.removeEventListener('keydown', this.boundHandlers.handleKeyDown);
+        }
+        if (this.boundHandlers.handleVisibilityChange) {
+            document.removeEventListener('visibilitychange', this.boundHandlers.handleVisibilityChange);
+        }
+        if (this.boundHandlers.handleFullscreenChange) {
+            document.removeEventListener('fullscreenchange', this.boundHandlers.handleFullscreenChange);
+        }
+        if (this.boundHandlers.handleResize) {
+            window.removeEventListener('resize', this.boundHandlers.handleResize);
+        }
+        if (this.boundHandlers.handleBeforeUnload) {
+            window.removeEventListener('beforeunload', this.boundHandlers.handleBeforeUnload);
+        }
+        if (this.elements.videoContainer) {
+            if (this.boundHandlers.handleMouseMove) {
+                this.elements.videoContainer.removeEventListener('mousemove', this.boundHandlers.handleMouseMove);
+            }
+            if (this.boundHandlers.handleMouseLeave) {
+                this.elements.videoContainer.removeEventListener('mouseleave', this.boundHandlers.handleMouseLeave);
+            }
+            if (this.boundHandlers.handleClick) {
+                this.elements.videoContainer.removeEventListener('click', this.boundHandlers.handleClick);
+            }
+            if (this.boundHandlers.handleDoubleClick) {
+                this.elements.videoContainer.removeEventListener('dblclick', this.boundHandlers.handleDoubleClick);
+            }
+            if (this.boundHandlers.handleContextMenu) {
+                this.elements.videoContainer.removeEventListener('contextmenu', this.boundHandlers.handleContextMenu);
+            }
+        }
 
         // Dispose Video.js player
         if (this.player && !this.player.isDisposed()) {
