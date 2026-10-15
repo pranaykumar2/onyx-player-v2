@@ -2,161 +2,132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ONYX Professional Video Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ONYX Player — Cinematic Pro Web Video Experience</title>
     
-    <!-- Meta Tags for PWA -->
-    <meta name="description" content="ONYX - Professional video player with HLS, DASH, and advanced streaming capabilities">
-    <meta name="theme-color" content="#FFD700">
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="description" content="ONYX Player — Professional next-generation video player with HLS streaming, Web Audio DSP, and dynamic ambient lighting.">
+    <meta name="theme-color" content="#08080C">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- Preconnect for Performance -->
+    <!-- Preconnect CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://vjs.zencdn.net">
     
-    <!-- Premium Typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Google Typography: Plus Jakarta Sans & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Google Material Symbols Rounded (Flagship Google Developer Icons) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <!-- Video.js 8 CSS -->
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
     
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
-    
-    <!-- Custom Enhanced Styles -->
+    <!-- Redesigned ONYX Styles -->
     <link rel="stylesheet" href="enhanced-styles.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFD700'/%3E%3Cstop offset='100%25' stop-color='%23FFA500'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23g)'/%3E%3Cpolygon points='35,25 35,75 75,50' fill='%23000'/%3E%3C/svg%3E">
-    
-    <style>
-        /* Critical CSS for immediate loading */
-        body { 
-            margin: 0; 
-            background: #000; 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            transition: opacity 0.5s ease;
-        }
-        
-        .loading-content {
-            text-align: center;
-            color: #fff;
-        }
-        
-        .loading-logo {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-            letter-spacing: 0.1em;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 215, 0, 0.2);
-            border-top: 3px solid #FFD700;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFD700'/%3E%3Cstop offset='100%25' stop-color='%23FFA500'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='%2308080C' stroke='url(%23g)' stroke-width='4'/%3E%3Cpolygon points='38,30 38,70 72,50' fill='url(%23g)'/%3E%3C/svg%3E">
 </head>
 <body>
-    <!-- Enhanced Loading Overlay -->
+    <!-- App Background Ambient Glow Canvas (Dynamic Video Lighting) -->
+    <div class="ambient-backdrop" id="ambientBackdrop">
+        <canvas id="ambientCanvas" class="ambient-canvas"></canvas>
+        <div class="ambient-vignette"></div>
+    </div>
+
+    <!-- Initialization Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
-            <div class="loading-logo">ONYX</div>
-            <div class="loading-spinner"></div>
-            <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Initializing Premium Experience...</div>
+            <div class="loading-logo-badge">
+                <span class="material-symbols-rounded logo-glow-icon">play_circle</span>
+                <span class="loading-logo-text">ONYX</span>
+                <span class="loading-badge">STUDIO</span>
+            </div>
+            <div class="loading-spinner-ring"></div>
+            <div class="loading-status-text" id="loadingStatusText">Initializing Cinematic Player...</div>
         </div>
     </div>
 
-    <!-- Main Video Container -->
+    <!-- Main Player Outer Container -->
     <div class="video-container" id="videoContainer">
         
-        <!-- Enhanced Top Bar -->
-        <div class="top-bar" id="topBar">
+        <!-- Top Navigation Bar -->
+        <header class="top-bar" id="topBar">
             <div class="top-bar-content">
-                <!-- Brand Section -->
+                <!-- Brand & Video Metadata -->
                 <div class="brand-section">
-                    <div class="brand-logo">
-                        <div class="logo-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
-                            </svg>
+                    <div class="brand-logo" id="brandLogoBtn" title="ONYX Live Pro Player">
+                        <div class="logo-icon-pill">
+                            <span class="material-symbols-rounded">podcasts</span>
                         </div>
                         <div class="logo-text">
-                            <span class="brand-name">ONYX</span>
-                            <span class="brand-subtitle">Professional</span>
+                            <div class="brand-title-row">
+                                <span class="brand-name">ONYX</span>
+                                <span class="brand-pill live-pill">LIVE PRO</span>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Video Info -->
+                    <div class="video-meta-divider"></div>
+
+                    <!-- Current Video Info -->
                     <div class="video-info" id="videoInfo">
-                        <div class="video-title" id="videoTitle"></div>
+                        <div class="video-title-row">
+                            <h1 class="video-title" id="videoTitle">Ready to Stream</h1>
+                        </div>
                         <div class="video-meta" id="videoMeta">
-                            <span class="video-quality" id="videoQuality"></span>
-                            <span class="video-fps" id="videoFps"></span>
-                            <span class="video-codec" id="videoCodec"></span>
+                            <span class="video-badge badge-live-beacon" id="topLiveBeacon">
+                                <span class="live-dot-mini"></span>
+                                <span>STANDBY</span>
+                            </span>
+                            <span class="video-badge badge-quality" id="videoQuality">HD</span>
+                            <span class="video-badge badge-fps" id="videoFps">60 FPS</span>
+                            <span class="video-badge badge-codec" id="videoCodec">HLS / AAC</span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Window Controls -->
-                <div class="window-controls">
-                    <button class="window-btn minimize-btn" id="minimizeBtn" aria-label="Minimize">
-                        <svg width="12" height="12" viewBox="0 0 12 12">
-                            <path d="M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
+                <!-- Quick Top Actions & Window Controls -->
+                <div class="top-actions">
+                    <button class="top-action-btn" id="quickLoadBtn" title="Load Stream or File (L)">
+                        <span class="material-symbols-rounded">add_circle</span>
+                        <span class="action-btn-text">Open Stream</span>
                     </button>
-                    <button class="window-btn maximize-btn" id="maximizeBtn" aria-label="Maximize">
-                        <svg width="12" height="12" viewBox="0 0 12 12">
-                            <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1.5" fill="none" rx="1"/>
-                        </svg>
+
+                    <button class="top-action-btn" id="audioStudioToggleBtn" title="Studio Audio & 5-Band EQ">
+                        <span class="material-symbols-rounded">graphic_eq</span>
+                        <span class="action-btn-text">Audio EQ</span>
                     </button>
-                    <button class="window-btn close-btn" id="closeBtn" aria-label="Close">
-                        <svg width="12" height="12" viewBox="0 0 12 12">
-                            <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
+
+                    <button class="top-action-btn" id="nerdStatsToggleBtn" title="Stream Diagnostics & Nerd Stats (D)">
+                        <span class="material-symbols-rounded">query_stats</span>
                     </button>
+
+                    <div class="window-controls">
+                        <button class="window-btn minimize-btn" id="minimizeBtn" aria-label="Minimize" title="Compact View">
+                            <span class="material-symbols-rounded">remove</span>
+                        </button>
+                        <button class="window-btn maximize-btn" id="maximizeBtn" aria-label="Maximize" title="Fill Screen">
+                            <span class="material-symbols-rounded">crop_square</span>
+                        </button>
+                        <button class="window-btn close-btn" id="closeBtn" aria-label="Close" title="Reset Player">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
-            <!-- Progress Indicator -->
+            <!-- Sleek Top Mini Progress Line -->
             <div class="top-progress" id="topProgress">
                 <div class="top-progress-fill" id="topProgressFill"></div>
             </div>
-        </div>
+        </header>
 
-        <!-- Video Element with Enhanced Container -->
-        <div class="video-wrapper" id="videoWrapper">
+        <!-- Video Stage Wrapper -->
+        <main class="video-wrapper" id="videoWrapper">
             <video 
                 id="videoPlayer" 
                 class="video-js enhanced-player" 
@@ -165,129 +136,109 @@
                 playsinline
                 webkit-playsinline>
                 <p class="vjs-no-js">
-                    To view this video please enable JavaScript, and consider upgrading to a
-                    web browser that supports HTML5 video.
+                    To view this video please enable JavaScript, or upgrade to a modern browser that supports HTML5 video.
                 </p>
             </video>
             
-            <!-- Enhanced Video Overlay -->
+            <!-- Video Interactive Overlay Surface -->
             <div class="video-overlay" id="videoOverlay">
                 
-                <!-- Loading State -->
+                <!-- Video Loading & Buffering Spinner -->
                 <div class="loading-state" id="loadingState">
                     <div class="loading-animation">
-                        <div class="pulse-rings">
-                            <div class="pulse-ring"></div>
-                            <div class="pulse-ring"></div>
-                            <div class="pulse-ring"></div>
-                        </div>
-                        <!-- <div class="loading-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
-                            </svg>
-                        </div> -->
+                        <div class="spinner-material"></div>
+                        <div class="pulse-ring"></div>
                     </div>
                     <div class="loading-text">
-                        <div class="loading-title">Loading Video</div>
-                        <div class="loading-subtitle">Please wait...</div>
+                        <div class="loading-title">Buffering Stream</div>
+                        <div class="loading-subtitle">Optimizing throughput...</div>
                     </div>
                 </div>
                 
-                <!-- Center Play Button -->
+                <!-- Center Hero Play / Pause Pulse Button -->
                 <div class="center-play-button" id="centerPlayButton">
                     <div class="play-button-container">
                         <div class="play-button-bg"></div>
                         <div class="play-button-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                <polygon points="8,5 19,12 8,19" fill="currentColor"/>
-                            </svg>
+                            <span class="material-symbols-rounded center-icon-play">play_arrow</span>
+                            <span class="material-symbols-rounded center-icon-pause" style="display: none;">pause</span>
                         </div>
-                        <div class="play-button-ring"></div>
                     </div>
-                    <div class="play-button-text">Click to Play</div>
                 </div>
                 
-                <!-- Brand Watermark -->
+                <!-- Brand Watermark in Corner -->
                 <div class="brand-watermark" id="brandWatermark">
                     <div class="watermark-content">
-                        <div class="watermark-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
-                            </svg>
-                        </div>
+                        <span class="material-symbols-rounded watermark-icon">play_circle</span>
                         <span class="watermark-text">ONYX</span>
                     </div>
                 </div>
+
+                <!-- Subtitle Drag & Drop Overlay Indicator -->
+                <div class="sub-drop-overlay" id="subDropOverlay">
+                    <span class="material-symbols-rounded" style="font-size: 54px;">subtitles</span>
+                    <div style="font-size: 1.15rem; font-weight: 600;">Drop Subtitle File Here</div>
+                    <div style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">Supports .srt and .vtt files with instant sync</div>
+                </div>
                 
-                <!-- Touch Gesture Indicators -->
+                <!-- Touch Gesture Feedback Pills (Volume, Brightness, Scrubbing) -->
                 <div class="gesture-indicators" id="gestureIndicators">
                     <div class="gesture-indicator volume-gesture" id="volumeGesture">
-                        <div class="gesture-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                            </svg>
+                        <span class="material-symbols-rounded gesture-icon">volume_up</span>
+                        <div class="gesture-content">
+                            <div class="gesture-text">Volume</div>
+                            <div class="gesture-value" id="volumeGestureValue">100%</div>
                         </div>
-                        <div class="gesture-text">Volume</div>
-                        <div class="gesture-value" id="volumeGestureValue">50%</div>
                     </div>
                     
                     <div class="gesture-indicator brightness-gesture" id="brightnessGesture">
-                        <div class="gesture-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="5"/>
-                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                            </svg>
+                        <span class="material-symbols-rounded gesture-icon">light_mode</span>
+                        <div class="gesture-content">
+                            <div class="gesture-text">Brightness</div>
+                            <div class="gesture-value" id="brightnessGestureValue">100%</div>
                         </div>
-                        <div class="gesture-text">Brightness</div>
-                        <div class="gesture-value" id="brightnessGestureValue">100%</div>
                     </div>
                     
                     <div class="gesture-indicator seek-gesture" id="seekGesture">
-                        <div class="gesture-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                <path d="M3 3v5h5"/>
-                            </svg>
+                        <span class="material-symbols-rounded gesture-icon">fast_forward</span>
+                        <div class="gesture-content">
+                            <div class="gesture-text">Seek</div>
+                            <div class="gesture-value" id="seekGestureValue">+10s</div>
                         </div>
-                        <div class="gesture-text">Seek</div>
-                        <div class="gesture-value" id="seekGestureValue">+10s</div>
                     </div>
                 </div>
                 
-                <!-- Skip Indicators -->
+                <!-- Double-Tap 10s Skip Rings (YouTube Style) -->
                 <div class="skip-indicators">
                     <div class="skip-indicator skip-backward" id="skipBackward">
-                        <div class="skip-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                <polygon points="19,20 9,12 19,4"/>
-                                <line x1="5" y1="19" x2="5" y2="5"/>
-                            </svg>
+                        <div class="skip-ripple">
+                            <span class="material-symbols-rounded skip-icon">replay_10</span>
+                            <div class="skip-text">10 seconds</div>
                         </div>
-                        <div class="skip-text">-10s</div>
                     </div>
                     
                     <div class="skip-indicator skip-forward" id="skipForward">
-                        <div class="skip-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                <polygon points="5,4 15,12 5,20"/>
-                                <line x1="19" y1="5" x2="19" y2="19"/>
-                            </svg>
+                        <div class="skip-ripple">
+                            <span class="material-symbols-rounded skip-icon">forward_10</span>
+                            <div class="skip-text">10 seconds</div>
                         </div>
-                        <div class="skip-text">+10s</div>
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <!-- Cinematic Pro Subtitle Engine Overlay -->
+            <div class="onyx-subtitle-container" id="onyxSubtitleContainer" style="display: none;" aria-live="polite">
+                <div class="onyx-subtitle-text" id="onyxSubtitleText"></div>
+            </div>
+        </main>
 
-        <!-- Enhanced Controls Bar -->
-        <div class="controls-bar" id="controlsBar">
-            <!-- Enhanced Progress Bar -->
+        <!-- Floating Glass Controls Bar (Google / Material You Aesthetic) -->
+        <footer class="controls-bar" id="controlsBar">
+            <!-- Fluid Interactive Scrubber & Timeline -->
             <div class="progress-section">
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-track">
+                        <div class="progress-hover-track" id="progressHoverTrack"></div>
                         <div class="progress-buffer" id="progressBuffer"></div>
                         <div class="progress-played" id="progressPlayed"></div>
                         <div class="progress-handle" id="progressHandle">
@@ -302,80 +253,37 @@
                 </div>
             </div>
             
-            <!-- Main Controls -->
+            <!-- Controls Content Row -->
             <div class="controls-content">
                 <div class="controls-row">
                     
-                    <!-- Left Controls -->
+                    <!-- Left Section: Playback, Skips & Timecode -->
                     <div class="controls-group left-controls">
-                        <button class="control-btn play-pause-btn" id="playPauseBtn" aria-label="Play/Pause">
-                            <div class="btn-content">
-                                <svg class="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                    <polygon points="8,5 19,12 8,19" fill="currentColor"/>
-                                </svg>
-                                <svg class="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display: none;">
-                                    <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
-                                    <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
-                                </svg>
-                            </div>
+                        <!-- Play/Pause -->
+                        <button class="control-btn play-pause-btn" id="playPauseBtn" aria-label="Play or Pause (Space)" title="Play / Pause (Space)">
+                            <span class="material-symbols-rounded play-icon">play_arrow</span>
+                            <span class="material-symbols-rounded pause-icon" style="display: none;">pause</span>
                         </button>
                         
-                        <button class="control-btn stop-btn" id="stopBtn" aria-label="Stop">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/>
-                            </svg>
+                        <!-- Stop -->
+                        <button class="control-btn stop-btn" id="stopBtn" aria-label="Stop playback" title="Stop">
+                            <span class="material-symbols-rounded">stop</span>
                         </button>
                         
-                        <div class="skip-controls">
-                            <button class="control-btn skip-btn" id="skipBackwardBtn" aria-label="Skip Backward 10s">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                    <path d="M11 17l-5-5 5-5"/>
-                                    <path d="M18 17l-5-5 5-5"/>
-                                </svg>
-                                <span class="skip-label">10</span>
-                            </button>
-                            
-                            <button class="control-btn skip-btn" id="skipForwardBtn" aria-label="Skip Forward 10s">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                    <path d="M13 7l5 5-5 5"/>
-                                    <path d="M6 7l5 5-5 5"/>
-                                </svg>
-                                <span class="skip-label">10</span>
-                            </button>
-                        </div>
+                        <!-- 10s Backward -->
+                        <button class="control-btn skip-btn" id="skipBackwardBtn" aria-label="Skip backward 10 seconds (J)" title="Rewind 10s (J)">
+                            <span class="material-symbols-rounded">replay_10</span>
+                        </button>
                         
-                        <!-- Enhanced Time Display -->
-                        <div class="time-display">
-                            <span class="time-current" id="timeCurrent">00:00</span>
-                            <span class="time-separator">/</span>
-                            <span class="time-duration" id="timeDuration">00:00</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Center Controls -->
-                    <div class="controls-group center-controls">
-                        <!-- Live Indicator -->
-                        <div class="live-indicator" id="liveIndicator" style="display: none;">
-                            <div class="live-dot"></div>
-                            <span class="live-text">LIVE</span>
-                        </div>
+                        <!-- 10s Forward -->
+                        <button class="control-btn skip-btn" id="skipForwardBtn" aria-label="Skip forward 10 seconds (L)" title="Forward 10s (L)">
+                            <span class="material-symbols-rounded">forward_10</span>
+                        </button>
                         
-                        <!-- Quality Badge -->
-                        <div class="quality-badge" id="qualityBadge">
-                            <span class="quality-text" id="qualityText">AUTO</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Right Controls -->
-                    <div class="controls-group right-controls">
-                        <!-- Enhanced Volume Control -->
+                        <!-- Volume & Expandable Slider Capsule -->
                         <div class="volume-control" id="volumeControl">
-                            <button class="control-btn volume-btn" id="volumeBtn" aria-label="Volume">
-                                <svg class="volume-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                                    <path class="volume-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                                    <path class="volume-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                                </svg>
+                            <button class="control-btn volume-btn" id="volumeBtn" aria-label="Mute or Unmute (M)" title="Mute / Unmute (M)">
+                                <span class="material-symbols-rounded volume-icon">volume_up</span>
                             </button>
                             <div class="volume-slider-container">
                                 <div class="volume-slider" id="volumeSlider">
@@ -384,316 +292,469 @@
                                         <div class="volume-handle" id="volumeHandle"></div>
                                     </div>
                                 </div>
-                                <div class="volume-display" id="volumeDisplay">100%</div>
+                                <span class="volume-display" id="volumeDisplay">100%</span>
                             </div>
                         </div>
+
+                        <!-- Monospaced Timecode Display -->
+                        <div class="time-display">
+                            <span class="time-current" id="timeCurrent">00:00</span>
+                            <span class="time-separator">/</span>
+                            <span class="time-duration" id="timeDuration">00:00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Center Section: Stream Badges & Live Spectrum -->
+                    <div class="controls-group center-controls">
+                        <!-- Live Broadcast Indicator -->
+                        <div class="live-indicator" id="liveIndicator" style="display: none;">
+                            <div class="live-dot-pulse"></div>
+                            <span class="live-text">LIVE</span>
+                        </div>
                         
-                        <!-- Speed Control -->
+                        <!-- Dynamic Audio Wave Mini Visualizer -->
+                        <div class="mini-audio-wave" id="miniAudioWave" title="Web Audio DSP Active">
+                            <span class="wave-bar bar-1"></span>
+                            <span class="wave-bar bar-2"></span>
+                            <span class="wave-bar bar-3"></span>
+                            <span class="wave-bar bar-4"></span>
+                        </div>
+
+                        <!-- Quality Badge Pill -->
+                        <div class="quality-badge" id="qualityBadge" title="Adaptive Bitrate Quality">
+                            <span class="material-symbols-rounded badge-icon">hd</span>
+                            <span class="quality-text" id="qualityText">AUTO</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Section: Speed, Audio EQ, Subtitles, PiP, Fullscreen -->
+                    <div class="controls-group right-controls">
+                        <!-- Playback Speed Pill -->
                         <div class="speed-control" id="speedControl">
-                            <button class="control-btn speed-btn" id="speedBtn" aria-label="Playback Speed">
-                                <span class="speed-text" id="speedText">1×</span>
+                            <button class="control-btn speed-btn" id="speedBtn" aria-label="Playback Speed" title="Playback Speed">
+                                <span class="speed-text" id="speedText">1.0×</span>
                             </button>
                         </div>
                         
-                        <!-- Tracks Button -->
-                        <button class="control-btn tracks-btn" id="tracksBtn" aria-label="Audio & Subtitles">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path d="M7 8h10M7 12h4M7 16h7"/>
-                                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-                            </svg>
+                        <!-- Audio EQ & DSP Studio Button -->
+                        <button class="control-btn audio-studio-btn" id="audioStudioBtn" aria-label="Audio Studio & Equalizer" title="5-Band Audio EQ & DSP">
+                            <span class="material-symbols-rounded">equalizer</span>
+                        </button>
+
+                        <!-- Audio Tracks & Subtitles Button -->
+                        <button class="control-btn tracks-btn" id="tracksBtn" aria-label="Audio & Subtitles" title="Captions & Audio Tracks (C)">
+                            <span class="material-symbols-rounded">subtitles</span>
                         </button>
                         
                         <!-- Settings Button -->
-                        <button class="control-btn settings-btn" id="settingsBtn" aria-label="Settings">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                            </svg>
+                        <button class="control-btn settings-btn" id="settingsBtn" aria-label="Player Settings" title="Player Settings">
+                            <span class="material-symbols-rounded">settings</span>
                         </button>
                         
-                        <!-- Picture-in-Picture -->
-                        <button class="control-btn pip-btn" id="pipBtn" aria-label="Picture-in-Picture">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path d="M8 3a2 2 0 0 0-2 2v3m18 8V5a2 2 0 0 0-2-2H5"/>
-                                <path d="M16 14h6v4a2 2 0 0 1-2 2h-4z"/>
-                            </svg>
+                        <!-- Picture-in-Picture Button -->
+                        <button class="control-btn pip-btn" id="pipBtn" aria-label="Picture in Picture (I)" title="Picture-in-Picture (I)">
+                            <span class="material-symbols-rounded">picture_in_picture_alt</span>
                         </button>
                         
                         <!-- Fullscreen Button -->
-                        <button class="control-btn fullscreen-btn" id="fullscreenBtn" aria-label="Fullscreen">
-                            <svg class="expand-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                            </svg>
-                            <svg class="compress-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" style="display: none;">
-                                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-                            </svg>
+                        <button class="control-btn fullscreen-btn" id="fullscreenBtn" aria-label="Toggle Fullscreen (F)" title="Fullscreen (F)">
+                            <span class="material-symbols-rounded expand-icon">fullscreen</span>
+                            <span class="material-symbols-rounded compress-icon" style="display: none;">fullscreen_exit</span>
                         </button>
                         
-                        <!-- Menu Button -->
-                        <button class="control-btn menu-btn" id="menuBtn" aria-label="Menu">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="1"/>
-                                <circle cx="19" cy="12" r="1"/>
-                                <circle cx="5" cy="12" r="1"/>
-                            </svg>
+                        <!-- Quick Menu Button -->
+                        <button class="control-btn menu-btn" id="menuBtn" aria-label="More Actions" title="More Options">
+                            <span class="material-symbols-rounded">more_vert</span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </footer>
 
-        <!-- Enhanced Modal System -->
+        <!-- ==========================================================================
+             MODALS & SHEETS (Google Material Design 3 Style)
+             ========================================================================== -->
         
-        <!-- Load Video Modal -->
+        <!-- 1. Load Video / Stream Modal (Streamlined for Live Streaming) -->
         <div class="modal-overlay" id="loadVideoModal">
             <div class="modal-container">
                 <div class="modal-content load-video-modal">
                     <div class="modal-header">
-                        <h2 class="modal-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polygon points="10,8 16,12 10,16"/>
-                            </svg>
-                            Load Video
-                        </h2>
-                        <button class="modal-close" id="closeLoadVideoModal" aria-label="Close">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
+                        <div class="modal-title-wrap">
+                            <div class="modal-title-icon stream-icon-glow">
+                                <span class="material-symbols-rounded">podcasts</span>
+                            </div>
+                            <div class="modal-title-text">
+                                <h2 class="modal-title">Live Stream Broadcast</h2>
+                                <p class="modal-subtitle">Direct HLS (.m3u8), DASH, or Low-Latency Stream Relay</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" id="closeLoadVideoModal" aria-label="Close Modal">
+                            <span class="material-symbols-rounded">close</span>
                         </button>
                     </div>
                     
                     <div class="modal-body">
+                        <!-- Stream URL Input Group -->
                         <div class="input-group">
-                            <label for="videoUrlInput">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                                </svg>
-                                Video URL (MP4, HLS)
+                            <label for="videoUrlInput" class="input-label">
+                                <span class="material-symbols-rounded">sensors</span>
+                                <span>Live Stream URL</span>
+                                <span class="protocol-tags">
+                                    <span class="protocol-tag">HLS</span>
+                                    <span class="protocol-tag">M3U8</span>
+                                    <span class="protocol-tag">MP4</span>
+                                </span>
                             </label>
-                            <input type="url" id="videoUrlInput" placeholder="https://example.com/video.m3u8" autocomplete="off">
-                            <div class="input-hint">Supports: MP4, WebM, HLS (.m3u8)</div>
+                            <div class="input-field-wrap">
+                                <input type="url" id="videoUrlInput" placeholder="https://example.com/live/stream.m3u8" autocomplete="off" spellcheck="false">
+                                <button class="input-paste-btn" id="pasteUrlBtn" title="Paste from clipboard">
+                                    <span class="material-symbols-rounded">content_paste</span>
+                                    <span>Paste</span>
+                                </button>
+                            </div>
+                            <div class="input-hint">
+                                Supports adaptive bitrate HLS (<strong>.m3u8</strong>), MP4 video, and live CDN streams.
+                            </div>
                         </div>
-                        
-                        <div class="divider">
-                            <span>OR</span>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="videoFileInput">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                    <polyline points="10,9 9,9 8,9"/>
-                                </svg>
-                                Upload Local File
+
+                        <!-- Vercel CORS Proxy Relay Option -->
+                        <div class="proxy-option-card">
+                            <div class="proxy-option-left">
+                                <div class="proxy-icon-badge">
+                                    <span class="material-symbols-rounded">vpn_lock</span>
+                                </div>
+                                <div class="proxy-text">
+                                    <div class="proxy-title">Vercel CORS Proxy Relay</div>
+                                    <div class="proxy-subtitle">Route stream through serverless edge proxy to bypass CORS restrictions</div>
+                                </div>
+                            </div>
+                            <label class="switch-toggle" for="corsProxyToggle">
+                                <input type="checkbox" id="corsProxyToggle">
+                                <span class="switch-slider"></span>
                             </label>
-                            <div class="file-input-container">
-                                <input type="file" id="videoFileInput" accept="video/*" hidden>
-                                <button class="file-input-btn" id="fileInputBtn">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                        <polyline points="7,10 12,15 17,10"/>
-                                        <line x1="12" y1="15" x2="12" y2="3"/>
-                                    </svg>
-                                    Choose File
-                                </button>
-                                <span class="file-name" id="fileName">No file selected</span>
+                        </div>
+
+                        <!-- Recent Streams History (Saved automatically in localStorage) -->
+                        <div class="recent-streams-wrap" id="recentStreamsWrap">
+                            <div class="recent-streams-header">
+                                <span class="material-symbols-rounded">history</span>
+                                <span>Recent Stream Feeds</span>
+                            </div>
+                            <div class="recent-streams-list" id="recentStreamsList">
+                                <div class="no-recent-streams">No previous streams saved. Paste a live stream URL above to connect.</div>
                             </div>
                         </div>
-                        
-                        <!-- URL Presets -->
-                        <div class="url-presets">
-                            <div class="presets-header">
-                                <h4>Sample Streams</h4>
+
+                        <!-- Compact Local File Option -->
+                        <div class="local-file-card">
+                            <div class="local-file-left">
+                                <span class="material-symbols-rounded">video_file</span>
+                                <div class="local-file-info">
+                                    <span class="local-file-title">Local Video File Fallback</span>
+                                    <span class="file-name" id="fileName">No file chosen</span>
+                                </div>
                             </div>
-                            <div class="presets-grid">
-                                <button class="preset-btn" data-url="https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8">
-                                    <div class="preset-icon">🎬</div>
-                                    <div class="preset-info">
-                                        <div class="preset-name">Tears of Steel</div>
-                                        <div class="preset-type">HLS Stream</div>
-                                    </div>
-                                </button>
-                                <button class="preset-btn" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
-                                    <div class="preset-icon">🐰</div>
-                                    <div class="preset-info">
-                                        <div class="preset-name">Big Buck Bunny</div>
-                                        <div class="preset-type">MP4 Video</div>
-                                    </div>
-                                </button>
-                            </div>
+                            <button class="file-input-btn" id="fileInputBtn" type="button">
+                                <span class="material-symbols-rounded">folder_open</span>
+                                <span>Browse</span>
+                            </button>
+                            <input type="file" id="videoFileInput" accept="video/*" hidden>
                         </div>
                     </div>
                     
                     <div class="modal-footer">
                         <button class="btn btn-secondary" id="cancelLoadVideo">Cancel</button>
                         <button class="btn btn-primary" id="loadVideoBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <polygon points="8,5 19,12 8,19"/>
-                            </svg>
-                            Load Video
+                            <span class="material-symbols-rounded">play_arrow</span>
+                            <span>Connect & Stream</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Settings Modal -->
+        <!-- 2. Player Settings Modal (Redesigned Pro Dialogue) -->
         <div class="modal-overlay" id="settingsModal">
             <div class="modal-container large">
                 <div class="modal-content settings-modal">
                     <div class="modal-header">
-                        <h2 class="modal-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                            </svg>
-                            Player Settings
-                        </h2>
-                        <button class="modal-close" id="closeSettingsModal" aria-label="Close">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
+                        <div class="modal-title-wrap">
+                            <div class="modal-title-icon settings-icon-glow">
+                                <span class="material-symbols-rounded">tune</span>
+                            </div>
+                            <div class="modal-title-text">
+                                <h2 class="modal-title">Player Preferences</h2>
+                                <p class="modal-subtitle">Configure video filters, audio DSP, captions & live broadcast themes</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" id="closeSettingsModal" aria-label="Close Settings">
+                            <span class="material-symbols-rounded">close</span>
                         </button>
                     </div>
                     
                     <div class="modal-body">
-                        <div class="settings-tabs">
-                            <button class="tab-btn active" data-tab="video">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <polygon points="23 7 16 12 23 17"/>
-                                    <rect x="1" y="5" width="15" height="14" rx="2"/>
-                                </svg>
-                                Video
+                        <div class="settings-tabs" role="tablist">
+                            <button class="tab-btn active" data-tab="video" role="tab" aria-selected="true">
+                                <span class="material-symbols-rounded">videocam</span>
+                                <span>Video & Display</span>
                             </button>
-                            <button class="tab-btn" data-tab="audio">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                                </svg>
-                                Audio
+                            <button class="tab-btn" data-tab="audio" role="tab" aria-selected="false">
+                                <span class="material-symbols-rounded">volume_up</span>
+                                <span>Audio DSP</span>
                             </button>
-                            <button class="tab-btn" data-tab="subtitles">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M7 8h10M7 12h4M7 16h7"/>
-                                    <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-                                </svg>
-                                Subtitles
+                            <button class="tab-btn" data-tab="subtitles" role="tab" aria-selected="false">
+                                <span class="material-symbols-rounded">subtitles</span>
+                                <span>Subtitles</span>
                             </button>
-                            <button class="tab-btn" data-tab="interface">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-                                    <line x1="9" y1="9" x2="9" y2="9.01"/>
-                                    <line x1="15" y1="9" x2="15" y2="9.01"/>
-                                    <line x1="12" y1="17" x2="12" y2="17.01"/>
-                                </svg>
-                                Interface
+                            <button class="tab-btn" data-tab="interface" role="tab" aria-selected="false">
+                                <span class="material-symbols-rounded">palette</span>
+                                <span>Themes & UI</span>
                             </button>
                         </div>
                         
                         <div class="settings-content" id="settingsContent">
-                            <!-- Settings content will be dynamically loaded -->
+                            <!-- Injected dynamically by player class with premium UI cards -->
                         </div>
                     </div>
                     
                     <div class="modal-footer">
                         <button class="btn btn-secondary" id="resetSettings">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                <path d="M3 3v5h5"/>
-                            </svg>
-                            Reset
+                            <span class="material-symbols-rounded">restart_alt</span>
+                            <span>Restore Defaults</span>
                         </button>
                         <button class="btn btn-primary" id="applySettings">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <polyline points="20,6 9,17 4,12"/>
-                            </svg>
-                            Apply Settings
+                            <span class="material-symbols-rounded">check</span>
+                            <span>Save Preferences</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Tracks Modal -->
+        <!-- 3. Studio Audio & 5-Band Equalizer Modal -->
+        <div class="modal-overlay" id="audioStudioModal">
+            <div class="modal-container medium">
+                <div class="modal-content audio-studio-modal">
+                    <div class="modal-header">
+                        <div class="modal-title-wrap">
+                            <div class="modal-title-icon audio-icon-glow">
+                                <span class="material-symbols-rounded">equalizer</span>
+                            </div>
+                            <div>
+                                <h2 class="modal-title">Studio Audio Engine</h2>
+                                <p class="modal-subtitle">Web Audio API 5-Band Parametric EQ & Dynamics DSP</p>
+                            </div>
+                        </div>
+                        <button class="modal-close" id="closeAudioStudioModal" aria-label="Close Audio Studio">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <!-- Real-time Audio Spectrum FFT Canvas -->
+                        <div class="spectrum-visualizer-container">
+                            <div class="visualizer-header">
+                                <span class="visualizer-title">Real-Time Frequency Spectrum (FFT 64-Band)</span>
+                                <span class="dsp-active-tag">DSP ACTIVE</span>
+                            </div>
+                            <canvas id="spectrumCanvas" class="spectrum-canvas" width="480" height="120"></canvas>
+                        </div>
+
+                        <!-- Audio Presets Pills -->
+                        <div class="eq-presets-row">
+                            <span class="eq-preset-label">Preset:</span>
+                            <div class="eq-preset-buttons">
+                                <button class="eq-preset-btn active" data-preset="flat">Flat / Studio</button>
+                                <button class="eq-preset-btn" data-preset="bass-boost">Bass Boost</button>
+                                <button class="eq-preset-btn" data-preset="vocal">Vocal Clarity</button>
+                                <button class="eq-preset-btn" data-preset="cinema">Cinematic Night</button>
+                                <button class="eq-preset-btn" data-preset="electronic">Electronic</button>
+                            </div>
+                        </div>
+
+                        <!-- 5-Band Graphic Sliders -->
+                        <div class="eq-bands-container">
+                            <div class="eq-band">
+                                <div class="eq-slider-vertical">
+                                    <input type="range" class="eq-slider" id="eqBand60" min="-12" max="12" step="1" value="0" orient="vertical">
+                                </div>
+                                <span class="eq-value" id="eqBand60Val">0 dB</span>
+                                <span class="eq-label">60 Hz</span>
+                                <span class="eq-sub">Sub Bass</span>
+                            </div>
+                            <div class="eq-band">
+                                <div class="eq-slider-vertical">
+                                    <input type="range" class="eq-slider" id="eqBand250" min="-12" max="12" step="1" value="0" orient="vertical">
+                                </div>
+                                <span class="eq-value" id="eqBand250Val">0 dB</span>
+                                <span class="eq-label">250 Hz</span>
+                                <span class="eq-sub">Bass</span>
+                            </div>
+                            <div class="eq-band">
+                                <div class="eq-slider-vertical">
+                                    <input type="range" class="eq-slider" id="eqBand1000" min="-12" max="12" step="1" value="0" orient="vertical">
+                                </div>
+                                <span class="eq-value" id="eqBand1000Val">0 dB</span>
+                                <span class="eq-label">1 kHz</span>
+                                <span class="eq-sub">Mid</span>
+                            </div>
+                            <div class="eq-band">
+                                <div class="eq-slider-vertical">
+                                    <input type="range" class="eq-slider" id="eqBand4000" min="-12" max="12" step="1" value="0" orient="vertical">
+                                </div>
+                                <span class="eq-value" id="eqBand4000Val">0 dB</span>
+                                <span class="eq-label">4 kHz</span>
+                                <span class="eq-sub">Presence</span>
+                            </div>
+                            <div class="eq-band">
+                                <div class="eq-slider-vertical">
+                                    <input type="range" class="eq-slider" id="eqBand12000" min="-12" max="12" step="1" value="0" orient="vertical">
+                                </div>
+                                <span class="eq-value" id="eqBand12000Val">0 dB</span>
+                                <span class="eq-label">12 kHz</span>
+                                <span class="eq-sub">Air</span>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Range Compression (Night Mode) -->
+                        <div class="audio-feature-row">
+                            <div class="audio-feature-info">
+                                <div class="audio-feature-title">Dynamic Range Compression (Night Mode)</div>
+                                <div class="audio-feature-desc">Balances loud explosions and quiet dialogue so you don't have to keep adjusting volume.</div>
+                            </div>
+                            <label class="switch-toggle" for="compressorToggle">
+                                <input type="checkbox" id="compressorToggle">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="resetEqBtn">
+                            <span class="material-symbols-rounded">restart_alt</span>
+                            <span>Reset EQ</span>
+                        </button>
+                        <button class="btn btn-primary" id="closeAudioStudioBtn">
+                            <span class="material-symbols-rounded">check</span>
+                            <span>Done</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Audio & Subtitles Tracks Modal -->
         <div class="modal-overlay" id="tracksModal">
             <div class="modal-container">
                 <div class="modal-content tracks-modal">
                     <div class="modal-header">
-                        <h2 class="modal-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path d="M7 8h10M7 12h4M7 16h7"/>
-                                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-                            </svg>
-                            Audio & Subtitles
-                        </h2>
-                        <button class="modal-close" id="closeTracksModal" aria-label="Close">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
+                        <div class="modal-title-wrap">
+                            <div class="modal-title-icon">
+                                <span class="material-symbols-rounded">closed_caption</span>
+                            </div>
+                            <h2 class="modal-title">Audio & Subtitle Streams</h2>
+                        </div>
+                        <button class="modal-close" id="closeTracksModal" aria-label="Close Tracks">
+                            <span class="material-symbols-rounded">close</span>
                         </button>
                     </div>
                     
                     <div class="modal-body">
                         <div id="tracksContent">
-                            <!-- Tracks content will be dynamically loaded -->
+                            <!-- Injected dynamically -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Context Menu -->
-        <div class="context-menu" id="contextMenu">
-            <div class="context-menu-item" id="contextPlay">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <polygon points="8,5 19,12 8,19"/>
-                </svg>
-                Play
+        <!-- 5. Streaming Diagnostics & Nerd Stats Overlay (YouTube Style HUD) -->
+        <div class="nerd-stats-overlay" id="nerdStatsOverlay" style="display: none;">
+            <div class="nerd-stats-header">
+                <div class="nerd-stats-title">
+                    <span class="material-symbols-rounded">insights</span>
+                    <span>Stream Health & Diagnostics</span>
+                </div>
+                <button class="nerd-stats-close" id="closeNerdStatsBtn" aria-label="Close Diagnostics">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
             </div>
-            <div class="context-menu-item" id="contextPause">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <rect x="6" y="4" width="4" height="16"/>
-                    <rect x="14" y="4" width="4" height="16"/>
-                </svg>
-                Pause
-            </div>
-            <div class="context-menu-divider"></div>
-            <div class="context-menu-item" id="contextFullscreen">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-                Fullscreen
-            </div>
-            <div class="context-menu-item" id="contextPip">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 3a2 2 0 0 0-2 2v3m18 8V5a2 2 0 0 0-2-2H5"/>
-                    <path d="M16 14h6v4a2 2 0 0 1-2 2h-4z"/>
-                </svg>
-                Picture-in-Picture
-            </div>
-            <div class="context-menu-divider"></div>
-            <div class="context-menu-item" id="contextCopyUrl">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                </svg>
-                Copy Video URL
+            <div class="nerd-stats-grid">
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Video Resolution</span>
+                    <span class="stat-value" id="statResolution">1920x1080@60</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Viewport Size</span>
+                    <span class="stat-value" id="statViewport">1280x720</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Current Bitrate</span>
+                    <span class="stat-value" id="statBitrate">4,520 kbps</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">EWMA Bandwidth Est.</span>
+                    <span class="stat-value" id="statBandwidth">12.8 Mbps</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Buffer Health</span>
+                    <span class="stat-value highlight" id="statBufferHealth">18.4 s</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Dropped / Total Frames</span>
+                    <span class="stat-value" id="statFrames">0 / 14,290</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Render Frame Rate</span>
+                    <span class="stat-value" id="statFps">60.0 fps</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">Audio Engine</span>
+                    <span class="stat-value" id="statAudio">WebAudio 5-Band DSP</span>
+                </div>
+                <div class="nerd-stat-row">
+                    <span class="stat-name">CORS Relay Engine</span>
+                    <span class="stat-value" id="statProxy">Direct Fetch</span>
+                </div>
             </div>
         </div>
 
-        <!-- Toast Notifications -->
+        <!-- Custom Context Menu -->
+        <div class="context-menu" id="contextMenu">
+            <div class="context-menu-item" id="contextPlay">
+                <span class="material-symbols-rounded">play_arrow</span>
+                <span>Play</span>
+            </div>
+            <div class="context-menu-item" id="contextPause">
+                <span class="material-symbols-rounded">pause</span>
+                <span>Pause</span>
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" id="contextFullscreen">
+                <span class="material-symbols-rounded">fullscreen</span>
+                <span>Toggle Fullscreen</span>
+            </div>
+            <div class="context-menu-item" id="contextPip">
+                <span class="material-symbols-rounded">picture_in_picture_alt</span>
+                <span>Picture in Picture</span>
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" id="contextCopyUrl">
+                <span class="material-symbols-rounded">content_copy</span>
+                <span>Copy Stream URL</span>
+            </div>
+            <div class="context-menu-item" id="contextNerdStats">
+                <span class="material-symbols-rounded">analytics</span>
+                <span>Stats for Nerds</span>
+            </div>
+        </div>
+
+        <!-- Toast Notifications Container -->
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Core Scripts -->
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script src="enhanced-player.js"></script>
 </body>
