@@ -5574,7 +5574,7 @@ class ONYXEnhancedPlayer {
 
         // Sync CORS relay checkbox
         if (this.elements.iptvCorsToggle) {
-            this.elements.iptvCorsToggle.checked = this.useCorsProxy !== undefined ? this.useCorsProxy : true;
+            this.elements.iptvCorsToggle.checked = this.useCorsProxy !== undefined ? this.useCorsProxy : false;
         }
 
         // Update favorites count badge
@@ -6161,7 +6161,7 @@ class ONYXEnhancedPlayer {
         this.setIptvStorage('onyx_iptv_recent', this.iptvState.recent);
 
         // Determine CORS proxy
-        const useProxy = this.elements.iptvCorsToggle ? this.elements.iptvCorsToggle.checked : (this.useCorsProxy || true);
+        const useProxy = this.elements.iptvCorsToggle ? this.elements.iptvCorsToggle.checked : (this.useCorsProxy || false);
 
         // Format custom title
         const formattedTitle = `${channel.countryFlag || '📺'} ${channel.name}`;
@@ -6317,6 +6317,7 @@ class ONYXEnhancedPlayer {
         if (current && titleEl) {
             titleEl.innerHTML = `Streaming: <strong>${current.name}</strong> • ${current.countryName}`;
             if (indicator) {
+                indicator.style.display = 'inline-flex';
                 indicator.classList.add('live');
                 const label = indicator.querySelector('.now-playing-label');
                 if (label) label.textContent = 'STREAMING LIVE';
@@ -6324,9 +6325,8 @@ class ONYXEnhancedPlayer {
         } else if (titleEl) {
             titleEl.textContent = 'Select any channel above to start watching live broadcast';
             if (indicator) {
+                indicator.style.display = 'none';
                 indicator.classList.remove('live');
-                const label = indicator.querySelector('.now-playing-label');
-                if (label) label.textContent = 'STANDBY';
             }
         }
     }

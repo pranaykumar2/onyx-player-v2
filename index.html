@@ -59,14 +59,13 @@
             <div class="top-bar-content">
                 <!-- Brand & Video Metadata -->
                 <div class="brand-section">
-                    <div class="brand-logo" id="brandLogoBtn" title="ONYX Live Pro Player">
+                    <div class="brand-logo" id="brandLogoBtn" title="ONYX Player">
                         <div class="logo-icon-pill">
                             <span class="material-symbols-rounded">podcasts</span>
                         </div>
                         <div class="logo-text">
                             <div class="brand-title-row">
                                 <span class="brand-name">ONYX</span>
-                                <span class="brand-pill live-pill">LIVE PRO</span>
                             </div>
                         </div>
                     </div>
@@ -79,10 +78,6 @@
                             <h1 class="video-title" id="videoTitle">Ready to Stream</h1>
                         </div>
                         <div class="video-meta" id="videoMeta">
-                            <span class="video-badge badge-live-beacon" id="topLiveBeacon">
-                                <span class="live-dot-mini"></span>
-                                <span>STANDBY</span>
-                            </span>
                             <span class="video-badge badge-quality" id="videoQuality">HD</span>
                             <span class="video-badge badge-fps" id="videoFps">60 FPS</span>
                             <span class="video-badge badge-codec" id="videoCodec">HLS / AAC</span>
@@ -699,7 +694,7 @@
                                 <span class="material-symbols-rounded proxy-icon">vpn_lock</span>
                                 <span class="proxy-label">CORS Relay</span>
                                 <label class="switch-toggle switch-toggle-sm" for="iptvCorsToggle">
-                                    <input type="checkbox" id="iptvCorsToggle" checked>
+                                    <input type="checkbox" id="iptvCorsToggle">
                                     <span class="switch-slider"></span>
                                 </label>
                             </div>
@@ -851,9 +846,9 @@
                     <!-- IPTV Modal Footer with Now Playing bar & Quick Controls -->
                     <div class="modal-footer iptv-modal-footer">
                         <div class="iptv-now-playing-pill" id="iptvNowPlayingPill">
-                            <div class="now-playing-indicator">
+                            <div class="now-playing-indicator" style="display: none;">
                                 <span class="material-symbols-rounded">sensors</span>
-                                <span class="now-playing-label">STANDBY</span>
+                                <span class="now-playing-label">LIVE</span>
                             </div>
                             <div class="now-playing-title" id="iptvNowPlayingTitle">Select any channel above to start watching live broadcast</div>
                         </div>
