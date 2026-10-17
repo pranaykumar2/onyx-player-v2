@@ -102,8 +102,10 @@
                         <span class="action-btn-text">Audio EQ</span>
                     </button>
 
-                    <button class="top-action-btn" id="nerdStatsToggleBtn" title="Stream Diagnostics & Nerd Stats (D)">
-                        <span class="material-symbols-rounded">query_stats</span>
+                    <button class="top-action-btn iptv-toggle-btn" id="iptvToggleBtn" title="World Live TV & IPTV Channels (T)">
+                        <span class="material-symbols-rounded">live_tv</span>
+                        <span class="action-btn-text">Live TV</span>
+                        <span class="iptv-live-badge">LIVE</span>
                     </button>
 
                     <div class="window-controls">
@@ -669,6 +671,204 @@
             </div>
         </div>
 
+        <!-- 6. World Live TV & IPTV Hub Modal (Dual-Pane Cinematic TV Guide) -->
+        <div class="modal-overlay" id="iptvModal">
+            <div class="modal-container xlarge iptv-modal-container">
+                <div class="modal-content iptv-modal-content">
+                    
+                    <!-- IPTV Modal Header -->
+                    <div class="modal-header iptv-modal-header">
+                        <div class="modal-title-wrap">
+                            <div class="modal-title-icon iptv-icon-glow">
+                                <span class="material-symbols-rounded">live_tv</span>
+                            </div>
+                            <div class="modal-title-text">
+                                <div class="iptv-title-row">
+                                    <h2 class="modal-title">World Live TV Hub</h2>
+                                    <span class="iptv-status-badge">
+                                        <span class="live-dot-mini"></span>
+                                        <span id="iptvTotalChannelsCount">10,000+ Streams Online</span>
+                                    </span>
+                                </div>
+                                <p class="modal-subtitle">Browse & stream live broadcast television across 200+ countries powered by iptv-org</p>
+                            </div>
+                        </div>
+
+                        <div class="iptv-header-actions">
+                            <div class="iptv-proxy-toggle-wrap" title="Enable CORS Relay for geo-blocked/CORS-restricted streams">
+                                <span class="material-symbols-rounded proxy-icon">vpn_lock</span>
+                                <span class="proxy-label">CORS Relay</span>
+                                <label class="switch-toggle switch-toggle-sm" for="iptvCorsToggle">
+                                    <input type="checkbox" id="iptvCorsToggle" checked>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <button class="modal-close" id="closeIptvModal" aria-label="Close Live TV">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- IPTV Modal Body: Dual Pane -->
+                    <div class="modal-body iptv-modal-body">
+                        
+                        <!-- Left Navigation Sidebar: Countries & Feeds -->
+                        <aside class="iptv-sidebar">
+                            
+                            <!-- Search Country Input -->
+                            <div class="iptv-search-box">
+                                <span class="material-symbols-rounded">search</span>
+                                <input type="text" id="iptvCountrySearch" placeholder="Search countries..." autocomplete="off">
+                                <button class="iptv-search-clear" id="iptvClearCountrySearch" style="display: none;">
+                                    <span class="material-symbols-rounded">close</span>
+                                </button>
+                            </div>
+
+                            <!-- Navigation Category Tabs -->
+                            <div class="iptv-nav-tabs">
+                                <button class="iptv-nav-tab active" data-tab="popular" id="iptvTabPopular">
+                                    <span class="material-symbols-rounded">star</span>
+                                    <span>Popular</span>
+                                </button>
+                                <button class="iptv-nav-tab" data-tab="favorites" id="iptvTabFavorites">
+                                    <span class="material-symbols-rounded">bookmarks</span>
+                                    <span>Favorites</span>
+                                    <span class="iptv-badge" id="iptvFavoritesCount">0</span>
+                                </button>
+                                <button class="iptv-nav-tab" data-tab="recent" id="iptvTabRecent">
+                                    <span class="material-symbols-rounded">history</span>
+                                    <span>Recent</span>
+                                </button>
+                                <button class="iptv-nav-tab" data-tab="all" id="iptvTabAll">
+                                    <span class="material-symbols-rounded">public</span>
+                                    <span>All (250)</span>
+                                </button>
+                                <button class="iptv-nav-tab" data-tab="custom" id="iptvTabCustom">
+                                    <span class="material-symbols-rounded">link</span>
+                                    <span>Custom / M3U</span>
+                                </button>
+                            </div>
+
+                            <!-- Scrollable Country List -->
+                            <div class="iptv-country-list" id="iptvCountryList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </aside>
+
+                        <!-- Right Main Channel Guide & Grid -->
+                        <section class="iptv-main-view">
+                            
+                            <!-- Channel Header / Filter Bar -->
+                            <div class="iptv-guide-toolbar">
+                                <div class="iptv-active-region-info">
+                                    <span class="active-country-flag" id="iptvActiveFlag">🇺🇸</span>
+                                    <div class="active-country-text">
+                                        <div class="active-country-title-row">
+                                            <h3 class="active-country-title" id="iptvActiveCountryTitle">United States</h3>
+                                            <span class="active-country-count-badge" id="iptvActiveCountBadge">Loading...</span>
+                                        </div>
+                                        <span class="active-country-sub" id="iptvActiveCountrySub">Official live broadcast streams</span>
+                                    </div>
+                                </div>
+
+                                <div class="iptv-guide-controls">
+                                    <!-- Search Channel Input -->
+                                    <div class="iptv-search-box channel-search-box">
+                                        <span class="material-symbols-rounded">search</span>
+                                        <input type="text" id="iptvChannelSearch" placeholder="Filter channels by name..." autocomplete="off">
+                                        <button class="iptv-search-clear" id="iptvClearChannelSearch" style="display: none;">
+                                            <span class="material-symbols-rounded">close</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- View Toggle: Grid / List -->
+                                    <div class="iptv-view-toggle">
+                                        <button class="iptv-view-btn active" id="iptvViewGridBtn" title="Grid View">
+                                            <span class="material-symbols-rounded">grid_view</span>
+                                        </button>
+                                        <button class="iptv-view-btn" id="iptvViewListBtn" title="List View">
+                                            <span class="material-symbols-rounded">view_list</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Genre / Category Filter Pills -->
+                            <div class="iptv-category-chips-bar" id="iptvCategoryPills">
+                                <button class="iptv-chip active" data-category="ALL">All Channels</button>
+                                <button class="iptv-chip" data-category="News">News</button>
+                                <button class="iptv-chip" data-category="Sports">Sports</button>
+                                <button class="iptv-chip" data-category="Movies">Movies</button>
+                                <button class="iptv-chip" data-category="Entertainment">Entertainment</button>
+                                <button class="iptv-chip" data-category="Music">Music</button>
+                                <button class="iptv-chip" data-category="Kids">Kids & Animation</button>
+                                <button class="iptv-chip" data-category="Documentary">Documentary</button>
+                                <button class="iptv-chip" data-category="Comedy">Comedy</button>
+                                <button class="iptv-chip" data-category="Religious">Religious</button>
+                                <button class="iptv-chip" data-category="General">General</button>
+                            </div>
+
+                            <!-- Custom M3U Loader Panel (Hidden by default, shown when custom tab active) -->
+                            <div class="iptv-custom-loader-panel" id="iptvCustomPanel" style="display: none;">
+                                <div class="custom-loader-card">
+                                    <div class="custom-loader-header">
+                                        <span class="material-symbols-rounded">playlist_play</span>
+                                        <div>
+                                            <h4>Load Custom IPTV M3U Playlist</h4>
+                                            <p>Load the official master <code>index.m3u</code> (11,000+ channels) or any remote M3U URL / file.</p>
+                                        </div>
+                                    </div>
+                                    <div class="custom-loader-inputs">
+                                        <div class="input-field-wrap">
+                                            <input type="url" id="iptvCustomUrlInput" placeholder="https://iptv-org.github.io/iptv/index.m3u" value="https://iptv-org.github.io/iptv/index.m3u">
+                                            <button class="btn btn-primary btn-sm" id="iptvLoadCustomUrlBtn">
+                                                <span class="material-symbols-rounded">cloud_download</span>
+                                                <span>Fetch & Load</span>
+                                            </button>
+                                        </div>
+                                        <div class="custom-quick-links">
+                                            <span>Quick Feeds:</span>
+                                            <button class="quick-feed-btn" data-url="https://iptv-org.github.io/iptv/index.m3u">Global Master (index.m3u)</button>
+                                            <button class="quick-feed-btn" data-url="https://iptv-org.github.io/iptv/index.country.m3u">All By Country (index.country.m3u)</button>
+                                            <button class="quick-feed-btn" data-url="https://iptv-org.github.io/iptv/categories/news.m3u">Global News Only</button>
+                                            <button class="quick-feed-btn" data-url="https://iptv-org.github.io/iptv/categories/sports.m3u">Global Sports Only</button>
+                                            <button class="quick-feed-btn" data-url="https://iptv-org.github.io/iptv/categories/movies.m3u">Global Movies Only</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Channel Grid View Container -->
+                            <div class="iptv-channels-scroll-container" id="iptvChannelsScroll">
+                                <div class="iptv-channels-grid" id="iptvChannelGrid">
+                                    <!-- Populated dynamically with rich channel cards -->
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- IPTV Modal Footer with Now Playing bar & Quick Controls -->
+                    <div class="modal-footer iptv-modal-footer">
+                        <div class="iptv-now-playing-pill" id="iptvNowPlayingPill">
+                            <div class="now-playing-indicator">
+                                <span class="material-symbols-rounded">sensors</span>
+                                <span class="now-playing-label">STANDBY</span>
+                            </div>
+                            <div class="now-playing-title" id="iptvNowPlayingTitle">Select any channel above to start watching live broadcast</div>
+                        </div>
+
+                        <div class="iptv-footer-actions">
+                            <button class="btn btn-secondary" id="iptvCloseAndWatchBtn">
+                                <span class="material-symbols-rounded">visibility</span>
+                                <span>Watch Fullscreen</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 5. Streaming Diagnostics & Nerd Stats Overlay (YouTube Style HUD) -->
         <div class="nerd-stats-overlay" id="nerdStatsOverlay" style="display: none;">
             <div class="nerd-stats-header">
@@ -743,6 +943,10 @@
             <div class="context-menu-item" id="contextCopyUrl">
                 <span class="material-symbols-rounded">content_copy</span>
                 <span>Copy Stream URL</span>
+            </div>
+            <div class="context-menu-item" id="contextIptv">
+                <span class="material-symbols-rounded">live_tv</span>
+                <span>World Live TV Hub</span>
             </div>
             <div class="context-menu-item" id="contextNerdStats">
                 <span class="material-symbols-rounded">analytics</span>

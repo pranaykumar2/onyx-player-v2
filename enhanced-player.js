@@ -361,7 +361,41 @@ class ONYXEnhancedPlayer {
             statFrames: '#statFrames',
             statFps: '#statFps',
             statAudio: '#statAudio',
-            statProxy: '#statProxy'
+            statProxy: '#statProxy',
+
+            // World Live TV & IPTV Hub Elements
+            iptvToggleBtn: '#iptvToggleBtn',
+            iptvModal: '#iptvModal',
+            closeIptvModal: '#closeIptvModal',
+            iptvCorsToggle: '#iptvCorsToggle',
+            iptvCountrySearch: '#iptvCountrySearch',
+            iptvClearCountrySearch: '#iptvClearCountrySearch',
+            iptvCountryList: '#iptvCountryList',
+            iptvTabPopular: '#iptvTabPopular',
+            iptvTabFavorites: '#iptvTabFavorites',
+            iptvTabRecent: '#iptvTabRecent',
+            iptvTabAll: '#iptvTabAll',
+            iptvTabCustom: '#iptvTabCustom',
+            iptvFavoritesCount: '#iptvFavoritesCount',
+            iptvActiveFlag: '#iptvActiveFlag',
+            iptvActiveCountryTitle: '#iptvActiveCountryTitle',
+            iptvActiveCountBadge: '#iptvActiveCountBadge',
+            iptvActiveCountrySub: '#iptvActiveCountrySub',
+            iptvChannelSearch: '#iptvChannelSearch',
+            iptvClearChannelSearch: '#iptvClearChannelSearch',
+            iptvViewGridBtn: '#iptvViewGridBtn',
+            iptvViewListBtn: '#iptvViewListBtn',
+            iptvCategoryPills: '#iptvCategoryPills',
+            iptvCustomPanel: '#iptvCustomPanel',
+            iptvCustomUrlInput: '#iptvCustomUrlInput',
+            iptvLoadCustomUrlBtn: '#iptvLoadCustomUrlBtn',
+            iptvChannelsScroll: '#iptvChannelsScroll',
+            iptvChannelGrid: '#iptvChannelGrid',
+            iptvNowPlayingPill: '#iptvNowPlayingPill',
+            iptvNowPlayingTitle: '#iptvNowPlayingTitle',
+            iptvCloseAndWatchBtn: '#iptvCloseAndWatchBtn',
+            iptvTotalChannelsCount: '#iptvTotalChannelsCount',
+            contextIptv: '#contextIptv'
         };
 
         this.elements = {};
@@ -1080,6 +1114,15 @@ class ONYXEnhancedPlayer {
             case 'KeyO':
                 e.preventDefault();
                 this.showModal('loadVideo');
+                break;
+
+            case 'KeyT':
+                e.preventDefault();
+                if (this.ui.activeModal === 'iptv') {
+                    this.hideModal();
+                } else {
+                    this.showModal('iptv');
+                }
                 break;
 
             case 'KeyF':
@@ -2004,7 +2047,8 @@ class ONYXEnhancedPlayer {
             loadVideo: this.elements.loadVideoModal,
             settings: this.elements.settingsModal,
             tracks: this.elements.tracksModal,
-            audioStudio: this.elements.audioStudioModal
+            audioStudio: this.elements.audioStudioModal,
+            iptv: this.elements.iptvModal
         };
 
         const modal = modals[modalType];
@@ -2025,6 +2069,8 @@ class ONYXEnhancedPlayer {
                     this.audioCtx.resume();
                 }
                 this.startVisualizer();
+            } else if (modalType === 'iptv') {
+                this.openIptvHub();
             }
         }
     }
@@ -2034,7 +2080,8 @@ class ONYXEnhancedPlayer {
             this.elements.loadVideoModal,
             this.elements.settingsModal,
             this.elements.tracksModal,
-            this.elements.audioStudioModal
+            this.elements.audioStudioModal,
+            this.elements.iptvModal
         ];
 
         modals.forEach(modal => {
@@ -4603,6 +4650,28 @@ class ONYXEnhancedPlayer {
             });
         }
 
+        // World Live TV & IPTV Hub buttons
+        if (this.elements.iptvToggleBtn) {
+            this.elements.iptvToggleBtn.addEventListener('click', () => this.showModal('iptv'));
+        }
+        if (this.elements.closeIptvModal) {
+            this.elements.closeIptvModal.addEventListener('click', () => this.hideModal());
+        }
+        if (this.elements.iptvCloseAndWatchBtn) {
+            this.elements.iptvCloseAndWatchBtn.addEventListener('click', () => this.hideModal());
+        }
+        if (this.elements.contextIptv) {
+            this.elements.contextIptv.addEventListener('click', () => {
+                this.hideContextMenu();
+                this.showModal('iptv');
+            });
+        }
+        if (this.elements.iptvModal) {
+            this.elements.iptvModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.iptvModal) this.hideModal();
+            });
+        }
+
         // Audio Studio close buttons
         if (this.elements.closeAudioStudioModal) {
             this.elements.closeAudioStudioModal.addEventListener('click', () => this.hideModal());
@@ -4718,7 +4787,7 @@ class ONYXEnhancedPlayer {
         }
     }
 
-    loadVideoWithSource(rawUrl, useProxy = false) {
+    loadVideoWithSource(rawUrl, useProxy = false, customTitle = null) {
         let src = rawUrl;
         this.lastRawUrl = rawUrl;
         this.useCorsProxy = useProxy;
@@ -4732,7 +4801,7 @@ class ONYXEnhancedPlayer {
         }
 
         const type = this.detectVideoType(rawUrl);
-        const videoTitle = this.extractVideoTitle(rawUrl);
+        const videoTitle = customTitle || this.extractVideoTitle(rawUrl);
         this.saveRecentStream(rawUrl, videoTitle);
 
         this.updateVideoTitle(videoTitle);
@@ -5453,6 +5522,813 @@ class ONYXEnhancedPlayer {
 
         this.isDestroyed = true;
         console.log('✅ ONYX Enhanced Player destroyed');
+    }
+
+    /* ==========================================================================
+       World Live TV & IPTV Hub Engine (Powered by iptv-org)
+       ========================================================================== */
+
+    initIptvState() {
+        if (this.iptvState) return;
+
+        this.iptvState = {
+            countries: [],
+            popularCodes: ['US', 'UK', 'IN', 'CA', 'DE', 'FR', 'AU', 'JP', 'BR', 'IT', 'ES', 'MX', 'NL', 'KR', 'TR', 'AE', 'SA', 'PK', 'BD', 'ID', 'PH', 'ZA', 'AR', 'SE', 'NO', 'CH', 'RU', 'CN'],
+            activeTab: 'popular',
+            activeCountry: { code: 'US', name: 'United States', flag: '🇺🇸' },
+            channelsCache: new Map(),
+            currentChannels: [],
+            activeCategory: 'ALL',
+            channelSearchQuery: '',
+            countrySearchQuery: '',
+            viewMode: 'grid',
+            favorites: this.getIptvStorage('onyx_iptv_favorites'),
+            recent: this.getIptvStorage('onyx_iptv_recent'),
+            currentlyPlayingChannel: null,
+            isControlsBound: false,
+            isLoadingChannels: false
+        };
+    }
+
+    getIptvStorage(key) {
+        try {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.warn('⚠️ Failed to read IPTV localStorage for', key, e);
+            return [];
+        }
+    }
+
+    setIptvStorage(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.warn('⚠️ Failed to save IPTV localStorage for', key, e);
+        }
+    }
+
+    openIptvHub() {
+        this.initIptvState();
+        this.bindIptvControls();
+
+        // Sync CORS relay checkbox
+        if (this.elements.iptvCorsToggle) {
+            this.elements.iptvCorsToggle.checked = this.useCorsProxy !== undefined ? this.useCorsProxy : true;
+        }
+
+        // Update favorites count badge
+        this.updateIptvFavoritesBadge();
+
+        // Load countries if empty
+        if (!this.iptvState.countries || this.iptvState.countries.length === 0) {
+            this.loadIptvCountries();
+        } else {
+            this.renderIptvCountries();
+        }
+
+        // Load default country channels if none loaded yet
+        if (!this.iptvState.currentChannels || this.iptvState.currentChannels.length === 0) {
+            this.loadIptvCountryChannels(this.iptvState.activeCountry.code);
+        }
+
+        this.updateIptvNowPlayingFooter();
+    }
+
+    bindIptvControls() {
+        if (this.iptvState.isControlsBound) return;
+        this.iptvState.isControlsBound = true;
+
+        // Navigation Tabs: Popular, Favorites, Recent, All, Custom
+        const tabs = [
+            { id: 'iptvTabPopular', tab: 'popular' },
+            { id: 'iptvTabFavorites', tab: 'favorites' },
+            { id: 'iptvTabRecent', tab: 'recent' },
+            { id: 'iptvTabAll', tab: 'all' },
+            { id: 'iptvTabCustom', tab: 'custom' }
+        ];
+
+        tabs.forEach(({ id, tab }) => {
+            const el = this.elements[id] || document.getElementById(id);
+            if (el) {
+                el.addEventListener('click', () => this.switchIptvTab(tab));
+            }
+        });
+
+        // Country Search Input with debounce
+        const countrySearch = this.elements.iptvCountrySearch || document.getElementById('iptvCountrySearch');
+        const clearCountryBtn = this.elements.iptvClearCountrySearch || document.getElementById('iptvClearCountrySearch');
+
+        if (countrySearch) {
+            countrySearch.addEventListener('input', (e) => {
+                this.iptvState.countrySearchQuery = e.target.value.trim().toLowerCase();
+                if (clearCountryBtn) {
+                    clearCountryBtn.style.display = this.iptvState.countrySearchQuery ? 'flex' : 'none';
+                }
+                this.renderIptvCountries();
+            });
+        }
+
+        if (clearCountryBtn && countrySearch) {
+            clearCountryBtn.addEventListener('click', () => {
+                countrySearch.value = '';
+                this.iptvState.countrySearchQuery = '';
+                clearCountryBtn.style.display = 'none';
+                this.renderIptvCountries();
+            });
+        }
+
+        // Channel Search Input with debounce
+        const channelSearch = this.elements.iptvChannelSearch || document.getElementById('iptvChannelSearch');
+        const clearChannelBtn = this.elements.iptvClearChannelSearch || document.getElementById('iptvClearChannelSearch');
+
+        if (channelSearch) {
+            channelSearch.addEventListener('input', (e) => {
+                this.iptvState.channelSearchQuery = e.target.value.trim().toLowerCase();
+                if (clearChannelBtn) {
+                    clearChannelBtn.style.display = this.iptvState.channelSearchQuery ? 'flex' : 'none';
+                }
+                this.renderIptvChannels();
+            });
+        }
+
+        if (clearChannelBtn && channelSearch) {
+            clearChannelBtn.addEventListener('click', () => {
+                channelSearch.value = '';
+                this.iptvState.channelSearchQuery = '';
+                clearChannelBtn.style.display = 'none';
+                this.renderIptvChannels();
+            });
+        }
+
+        // View Mode Toggle (Grid vs List)
+        const gridBtn = this.elements.iptvViewGridBtn || document.getElementById('iptvViewGridBtn');
+        const listBtn = this.elements.iptvViewListBtn || document.getElementById('iptvViewListBtn');
+
+        if (gridBtn && listBtn) {
+            gridBtn.addEventListener('click', () => {
+                this.iptvState.viewMode = 'grid';
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                const grid = this.elements.iptvChannelGrid || document.getElementById('iptvChannelGrid');
+                if (grid) grid.classList.remove('list-view');
+            });
+
+            listBtn.addEventListener('click', () => {
+                this.iptvState.viewMode = 'list';
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+                const grid = this.elements.iptvChannelGrid || document.getElementById('iptvChannelGrid');
+                if (grid) grid.classList.add('list-view');
+            });
+        }
+
+        // Category Filter Chips
+        const pillsContainer = this.elements.iptvCategoryPills || document.getElementById('iptvCategoryPills');
+        if (pillsContainer) {
+            pillsContainer.addEventListener('click', (e) => {
+                const chip = e.target.closest('.iptv-chip');
+                if (!chip) return;
+                const category = chip.getAttribute('data-category');
+                if (!category) return;
+
+                pillsContainer.querySelectorAll('.iptv-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+
+                this.iptvState.activeCategory = category;
+                this.renderIptvChannels();
+            });
+        }
+
+        // Custom M3U Loader & Quick Feeds
+        const loadCustomBtn = this.elements.iptvLoadCustomUrlBtn || document.getElementById('iptvLoadCustomUrlBtn');
+        const customUrlInput = this.elements.iptvCustomUrlInput || document.getElementById('iptvCustomUrlInput');
+
+        if (loadCustomBtn && customUrlInput) {
+            loadCustomBtn.addEventListener('click', () => {
+                const url = customUrlInput.value.trim();
+                if (url) this.loadCustomM3u(url);
+            });
+        }
+
+        const quickFeedButtons = document.querySelectorAll('.quick-feed-btn');
+        quickFeedButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = btn.getAttribute('data-url');
+                if (url) {
+                    if (customUrlInput) customUrlInput.value = url;
+                    this.loadCustomM3u(url);
+                }
+            });
+        });
+
+        // CORS Toggle Checkbox in IPTV Header
+        const corsToggle = this.elements.iptvCorsToggle || document.getElementById('iptvCorsToggle');
+        if (corsToggle) {
+            corsToggle.addEventListener('change', (e) => {
+                this.useCorsProxy = e.target.checked;
+                if (this.elements.corsProxyToggle) {
+                    this.elements.corsProxyToggle.checked = e.target.checked;
+                }
+                this.showToast(
+                    this.useCorsProxy ? 'CORS Relay active for IPTV streams' : 'Direct streaming active (No proxy)',
+                    'info',
+                    'IPTV Proxy'
+                );
+            });
+        }
+    }
+
+    updateIptvFavoritesBadge() {
+        const badge = this.elements.iptvFavoritesCount || document.getElementById('iptvFavoritesCount');
+        if (badge) {
+            badge.textContent = this.iptvState.favorites ? this.iptvState.favorites.length : 0;
+        }
+    }
+
+    async loadIptvCountries() {
+        // Fast initial seeds for instantaneous 0ms display
+        const seedCountries = [
+            { code: 'US', name: 'United States', flag: '🇺🇸' },
+            { code: 'UK', name: 'United Kingdom', flag: '🇬🇧' },
+            { code: 'IN', name: 'India', flag: '🇮🇳' },
+            { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+            { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+            { code: 'FR', name: 'France', flag: '🇫🇷' },
+            { code: 'AU', name: 'Australia', flag: '🇦🇺' },
+            { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+            { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+            { code: 'IT', name: 'Italy', flag: '🇮🇹' },
+            { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+            { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+            { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+            { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
+            { code: 'TR', name: 'Turkey', flag: '🇹🇷' },
+            { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪' },
+            { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦' },
+            { code: 'PK', name: 'Pakistan', flag: '🇵🇰' },
+            { code: 'BD', name: 'Bangladesh', flag: '🇧🇩' },
+            { code: 'ID', name: 'Indonesia', flag: '🇮🇩' },
+            { code: 'PH', name: 'Philippines', flag: '🇵🇭' },
+            { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
+            { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
+            { code: 'SE', name: 'Sweden', flag: '🇸🇪' },
+            { code: 'NO', name: 'Norway', flag: '🇳🇴' },
+            { code: 'CH', name: 'Switzerland', flag: '🇨🇭' },
+            { code: 'RU', name: 'Russia', flag: '🇷🇺' },
+            { code: 'CN', name: 'China', flag: '🇨🇳' }
+        ];
+
+        this.iptvState.countries = seedCountries;
+        this.renderIptvCountries();
+
+        // Fetch official full 250 countries catalog from iptv-org
+        try {
+            const res = await fetch('https://iptv-org.github.io/api/countries.json');
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    this.iptvState.countries = data.map(c => ({
+                        code: c.code,
+                        name: c.name,
+                        flag: c.flag || '🏳️'
+                    }));
+
+                    const tabAll = this.elements.iptvTabAll || document.getElementById('iptvTabAll');
+                    if (tabAll) {
+                        tabAll.innerHTML = `<span class="material-symbols-rounded">public</span><span>All (${this.iptvState.countries.length})</span>`;
+                    }
+
+                    this.renderIptvCountries();
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not fetch remote iptv-org countries.json, using offline dataset:', e);
+        }
+    }
+
+    renderIptvCountries() {
+        const list = this.elements.iptvCountryList || document.getElementById('iptvCountryList');
+        if (!list) return;
+
+        let countries = this.iptvState.countries || [];
+        const activeTab = this.iptvState.activeTab;
+        const query = this.iptvState.countrySearchQuery;
+
+        if (activeTab === 'popular') {
+            const popularSet = new Set(this.iptvState.popularCodes);
+            countries = countries.filter(c => popularSet.has(c.code));
+        }
+
+        if (query) {
+            countries = countries.filter(c =>
+                c.name.toLowerCase().includes(query) ||
+                c.code.toLowerCase().includes(query)
+            );
+        }
+
+        if (countries.length === 0) {
+            list.innerHTML = `<div style="padding: 16px 8px; font-size: 0.76rem; color: var(--text-tertiary); text-align: center;">No matching countries</div>`;
+            return;
+        }
+
+        list.innerHTML = countries.map(c => {
+            const isActive = this.iptvState.activeCountry && this.iptvState.activeCountry.code === c.code;
+            return `
+                <div class="iptv-country-item ${isActive ? 'active' : ''}" data-code="${c.code}" data-name="${c.name}" data-flag="${c.flag}">
+                    <div class="country-item-left">
+                        <span class="country-flag">${c.flag}</span>
+                        <span class="country-name">${c.name}</span>
+                    </div>
+                    <span class="country-code-pill">${c.code}</span>
+                </div>
+            `;
+        }).join('');
+
+        // Bind clicks
+        list.querySelectorAll('.iptv-country-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const code = item.getAttribute('data-code');
+                const name = item.getAttribute('data-name');
+                const flag = item.getAttribute('data-flag');
+                this.selectIptvCountry({ code, name, flag });
+            });
+        });
+    }
+
+    selectIptvCountry(country) {
+        this.iptvState.activeCountry = country;
+
+        // Hide custom loader panel if open
+        const customPanel = this.elements.iptvCustomPanel || document.getElementById('iptvCustomPanel');
+        if (customPanel) customPanel.style.display = 'none';
+
+        // Update toolbar
+        const flagEl = this.elements.iptvActiveFlag || document.getElementById('iptvActiveFlag');
+        const titleEl = this.elements.iptvActiveCountryTitle || document.getElementById('iptvActiveCountryTitle');
+        const subEl = this.elements.iptvActiveCountrySub || document.getElementById('iptvActiveCountrySub');
+
+        if (flagEl) flagEl.textContent = country.flag;
+        if (titleEl) titleEl.textContent = country.name;
+        if (subEl) subEl.textContent = `Live broadcast feeds from ${country.name}`;
+
+        // Reset category pills
+        this.iptvState.activeCategory = 'ALL';
+        const pillsContainer = this.elements.iptvCategoryPills || document.getElementById('iptvCategoryPills');
+        if (pillsContainer) {
+            pillsContainer.style.display = 'flex';
+            pillsContainer.querySelectorAll('.iptv-chip').forEach(c => {
+                c.classList.toggle('active', c.getAttribute('data-category') === 'ALL');
+            });
+        }
+
+        // Highlight in country list
+        this.renderIptvCountries();
+
+        // Load channels
+        this.loadIptvCountryChannels(country.code);
+    }
+
+    async loadIptvCountryChannels(countryCode) {
+        const grid = this.elements.iptvChannelGrid || document.getElementById('iptvChannelGrid');
+        const countBadge = this.elements.iptvActiveCountBadge || document.getElementById('iptvActiveCountBadge');
+
+        // Check Cache
+        if (this.iptvState.channelsCache.has(countryCode)) {
+            const channels = this.iptvState.channelsCache.get(countryCode);
+            this.iptvState.currentChannels = channels;
+            if (countBadge) countBadge.textContent = `${channels.length} Channels`;
+            this.renderIptvChannels();
+            return;
+        }
+
+        // Loading State
+        if (countBadge) countBadge.textContent = 'Loading...';
+        if (grid) {
+            grid.innerHTML = `
+                <div class="iptv-state-message">
+                    <div class="iptv-spinner"></div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">Fetching ${this.iptvState.activeCountry.name} Live Streams</div>
+                    <div style="font-size: 0.78rem; color: var(--text-tertiary);">Connecting to iptv-org high-speed index...</div>
+                </div>
+            `;
+        }
+
+        try {
+            const url = `https://iptv-org.github.io/iptv/countries/${countryCode.toLowerCase()}.m3u`;
+            const res = await fetch(url);
+
+            if (!res.ok) {
+                if (countBadge) countBadge.textContent = '0 Channels';
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="iptv-state-message">
+                            <span class="material-symbols-rounded">tv_off</span>
+                            <div style="font-weight: 600;">No Direct Playlist Indexed</div>
+                            <div style="font-size: 0.78rem; color: var(--text-tertiary); max-width: 320px;">
+                                No live broadcast feeds currently indexed for ${this.iptvState.activeCountry.name}.
+                                Try browsing popular countries or loading the master playlist.
+                            </div>
+                            <button class="btn btn-sm btn-primary" id="iptvLoadMasterFromEmpty">Browse Global Master Feed</button>
+                        </div>
+                    `;
+                    const btn = document.getElementById('iptvLoadMasterFromEmpty');
+                    if (btn) {
+                        btn.addEventListener('click', () => this.switchIptvTab('custom'));
+                    }
+                }
+                return;
+            }
+
+            const text = await res.text();
+            const channels = this.parseM3u(text, this.iptvState.activeCountry);
+
+            this.iptvState.channelsCache.set(countryCode, channels);
+            this.iptvState.currentChannels = channels;
+
+            if (countBadge) countBadge.textContent = `${channels.length} Channels`;
+            this.renderIptvChannels();
+
+        } catch (e) {
+            console.error('❌ Failed to fetch country channels:', e);
+            if (countBadge) countBadge.textContent = 'Error';
+            if (grid) {
+                grid.innerHTML = `
+                    <div class="iptv-state-message">
+                        <span class="material-symbols-rounded">wifi_off</span>
+                        <div style="font-weight: 600;">Network Request Failed</div>
+                        <div style="font-size: 0.78rem; color: var(--text-tertiary);">Could not connect to iptv-org. Check your internet connection.</div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    parseM3u(m3uText, country = null) {
+        const lines = m3uText.split('\n');
+        const channels = [];
+        let current = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line.startsWith('#EXTINF:')) {
+                const tvgId = (line.match(/tvg-id="([^"]*)"/) || [])[1] || '';
+                const tvgLogo = (line.match(/tvg-logo="([^"]*)"/) || [])[1] || '';
+                const groupTitle = (line.match(/group-title="([^"]*)"/) || [])[1] || 'General';
+                const commaIdx = line.indexOf(',');
+                const name = commaIdx !== -1 ? line.substring(commaIdx + 1).trim() : 'Live Channel';
+
+                // Detect resolution / quality tag
+                let quality = '';
+                const upperName = name.toUpperCase();
+                if (upperName.includes('1080P') || upperName.includes('FHD')) quality = '1080p';
+                else if (upperName.includes('720P') || upperName.includes('HD')) quality = '720p';
+                else if (upperName.includes('4K') || upperName.includes('UHD')) quality = '4K';
+                else if (upperName.includes('540P')) quality = '540p';
+                else if (upperName.includes('480P') || upperName.includes('SD')) quality = 'SD';
+                else quality = 'HD';
+
+                // Extract primary category
+                const categories = groupTitle.split(';').map(g => g.trim()).filter(Boolean);
+                const primaryCategory = categories[0] || 'General';
+
+                current = {
+                    id: tvgId || `ch_${channels.length}`,
+                    name: name,
+                    logo: tvgLogo,
+                    group: groupTitle,
+                    category: primaryCategory,
+                    categories: categories,
+                    quality: quality,
+                    countryCode: country?.code || 'GL',
+                    countryName: country?.name || 'World',
+                    countryFlag: country?.flag || '📺'
+                };
+            } else if (line && !line.startsWith('#') && current) {
+                current.url = line;
+                channels.push(current);
+                current = null;
+            }
+        }
+
+        return channels;
+    }
+
+    renderIptvChannels() {
+        const grid = this.elements.iptvChannelGrid || document.getElementById('iptvChannelGrid');
+        if (!grid) return;
+
+        let channels = this.iptvState.currentChannels || [];
+        const cat = this.iptvState.activeCategory;
+        const query = this.iptvState.channelSearchQuery;
+
+        // Filter by Category
+        if (cat && cat !== 'ALL') {
+            channels = channels.filter(c =>
+                c.category?.toLowerCase() === cat.toLowerCase() ||
+                (c.group && c.group.toLowerCase().includes(cat.toLowerCase()))
+            );
+        }
+
+        // Filter by Search Query
+        if (query) {
+            channels = channels.filter(c =>
+                c.name.toLowerCase().includes(query) ||
+                (c.category && c.category.toLowerCase().includes(query)) ||
+                (c.id && c.id.toLowerCase().includes(query))
+            );
+        }
+
+        if (channels.length === 0) {
+            grid.innerHTML = `
+                <div class="iptv-state-message">
+                    <span class="material-symbols-rounded">search_off</span>
+                    <div style="font-weight: 600;">No Channels Found</div>
+                    <div style="font-size: 0.78rem; color: var(--text-tertiary);">
+                        No broadcast streams match "${query || cat}". Try clearing your search query or selecting "All Channels".
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Render Cards
+        const favSet = new Set((this.iptvState.favorites || []).map(f => f.url));
+        const playingUrl = this.iptvState.currentlyPlayingChannel?.url;
+
+        grid.innerHTML = channels.map(channel => {
+            const isFav = favSet.has(channel.url);
+            const isPlaying = playingUrl && playingUrl === channel.url;
+            const initials = channel.name.substring(0, 2).toUpperCase();
+            const catClass = `cat-${channel.category.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+            return `
+                <div class="iptv-channel-card ${isPlaying ? 'now-playing-card' : ''}" data-url="${encodeURIComponent(channel.url)}">
+                    <div class="iptv-card-top">
+                        <div class="iptv-channel-logo-wrap">
+                            ${channel.logo ? `
+                                <img src="${channel.logo}" alt="${channel.name}" class="iptv-channel-logo" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="iptv-channel-avatar-fallback" style="display: none;">
+                                    <span>${channel.countryFlag}</span>
+                                    <span>${initials}</span>
+                                </div>
+                            ` : `
+                                <div class="iptv-channel-avatar-fallback" style="display: flex;">
+                                    <span>${channel.countryFlag}</span>
+                                    <span>${initials}</span>
+                                </div>
+                            `}
+                        </div>
+                        <div class="iptv-card-actions-quick">
+                            <button class="iptv-star-btn ${isFav ? 'favorited' : ''}" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}" aria-label="Favorite">
+                                <span class="material-symbols-rounded">${isFav ? 'star' : 'star_border'}</span>
+                            </button>
+                            <button class="iptv-copy-btn" title="Copy stream URL" aria-label="Copy URL">
+                                <span class="material-symbols-rounded">content_copy</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="iptv-channel-info">
+                        <div class="iptv-channel-name-row">
+                            <div class="iptv-channel-name" title="${channel.name}">${channel.name}</div>
+                            ${isPlaying ? `
+                                <div class="iptv-card-equalizer" title="Currently Playing">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="iptv-badges-row">
+                            <span class="iptv-cat-badge ${catClass}">${channel.category}</span>
+                            <span class="iptv-quality-pill">${channel.quality}</span>
+                        </div>
+                    </div>
+
+                    <button class="iptv-tune-btn">
+                        <span class="material-symbols-rounded">${isPlaying ? 'volume_up' : 'play_arrow'}</span>
+                        <span>${isPlaying ? 'Playing Now' : 'Tune In'}</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        // Bind Card Event Listeners
+        grid.querySelectorAll('.iptv-channel-card').forEach((card, index) => {
+            const channel = channels[index];
+
+            // Card click & Tune In button click
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.iptv-star-btn') || e.target.closest('.iptv-copy-btn')) return;
+                this.tuneIptvChannel(channel);
+            });
+
+            // Star favorite click
+            const starBtn = card.querySelector('.iptv-star-btn');
+            if (starBtn) {
+                starBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleIptvFavorite(channel, starBtn);
+                });
+            }
+
+            // Copy URL click
+            const copyBtn = card.querySelector('.iptv-copy-btn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        await navigator.clipboard.writeText(channel.url);
+                        this.showToast(`Stream URL copied for ${channel.name}`, 'info', 'IPTV Link');
+                    } catch (err) {
+                        this.showToast('Could not copy link to clipboard', 'warning', 'IPTV Link');
+                    }
+                });
+            }
+        });
+    }
+
+    tuneIptvChannel(channel) {
+        if (!channel || !channel.url) return;
+
+        // Update currently playing state
+        this.iptvState.currentlyPlayingChannel = channel;
+
+        // Auto-save to Recent history
+        const recent = this.iptvState.recent || [];
+        const filteredRecent = recent.filter(r => r.url !== channel.url);
+        filteredRecent.unshift(channel);
+        this.iptvState.recent = filteredRecent.slice(0, 30);
+        this.setIptvStorage('onyx_iptv_recent', this.iptvState.recent);
+
+        // Determine CORS proxy
+        const useProxy = this.elements.iptvCorsToggle ? this.elements.iptvCorsToggle.checked : (this.useCorsProxy || true);
+
+        // Format custom title
+        const formattedTitle = `${channel.countryFlag || '📺'} ${channel.name}`;
+
+        // Load stream in Onyx Player
+        console.log('📺 Tuning IPTV Channel:', channel.name, channel.url, 'Proxy:', useProxy);
+        this.loadVideoWithSource(channel.url, useProxy, formattedTitle);
+
+        // Update live beacon
+        if (this.elements.topLiveBeacon) {
+            this.elements.topLiveBeacon.innerHTML = '<span class="live-dot-mini"></span><span>LIVE TV</span>';
+            this.elements.topLiveBeacon.classList.add('live-active');
+        }
+
+        // Update modal footer Now Playing bar
+        this.updateIptvNowPlayingFooter();
+
+        // Refresh cards to highlight playing channel
+        this.renderIptvChannels();
+
+        // Show toast notification
+        this.showToast(`Tuning into ${channel.name} (${channel.countryName})`, 'success', 'Live TV');
+    }
+
+    toggleIptvFavorite(channel, starBtn) {
+        let favorites = this.iptvState.favorites || [];
+        const existsIndex = favorites.findIndex(f => f.url === channel.url);
+
+        if (existsIndex !== -1) {
+            favorites.splice(existsIndex, 1);
+            if (starBtn) {
+                starBtn.classList.remove('favorited');
+                const icon = starBtn.querySelector('.material-symbols-rounded');
+                if (icon) icon.textContent = 'star_border';
+            }
+            this.showToast(`Removed ${channel.name} from favorites`, 'info', 'Favorites');
+        } else {
+            favorites.unshift(channel);
+            if (starBtn) {
+                starBtn.classList.add('favorited');
+                const icon = starBtn.querySelector('.material-symbols-rounded');
+                if (icon) icon.textContent = 'star';
+            }
+            this.showToast(`Saved ${channel.name} to favorites`, 'success', 'Favorites');
+        }
+
+        this.iptvState.favorites = favorites;
+        this.setIptvStorage('onyx_iptv_favorites', favorites);
+        this.updateIptvFavoritesBadge();
+
+        if (this.iptvState.activeTab === 'favorites') {
+            this.renderIptvFavorites();
+        }
+    }
+
+    switchIptvTab(tabName) {
+        this.iptvState.activeTab = tabName;
+
+        // Update active tab buttons
+        const tabIds = {
+            popular: 'iptvTabPopular',
+            favorites: 'iptvTabFavorites',
+            recent: 'iptvTabRecent',
+            all: 'iptvTabAll',
+            custom: 'iptvTabCustom'
+        };
+
+        Object.entries(tabIds).forEach(([name, id]) => {
+            const btn = this.elements[id] || document.getElementById(id);
+            if (btn) btn.classList.toggle('active', name === tabName);
+        });
+
+        // Hide/Show custom panel
+        const customPanel = this.elements.iptvCustomPanel || document.getElementById('iptvCustomPanel');
+        const countryList = this.elements.iptvCountryList || document.getElementById('iptvCountryList');
+        const pillsContainer = this.elements.iptvCategoryPills || document.getElementById('iptvCategoryPills');
+
+        if (customPanel) customPanel.style.display = tabName === 'custom' ? 'block' : 'none';
+
+        if (tabName === 'favorites') {
+            this.renderIptvFavorites();
+        } else if (tabName === 'recent') {
+            this.renderIptvRecent();
+        } else if (tabName === 'custom') {
+            // Setup master feed placeholder view
+            const titleEl = this.elements.iptvActiveCountryTitle || document.getElementById('iptvActiveCountryTitle');
+            const subEl = this.elements.iptvActiveCountrySub || document.getElementById('iptvActiveCountrySub');
+            const flagEl = this.elements.iptvActiveFlag || document.getElementById('iptvActiveFlag');
+            if (flagEl) flagEl.textContent = '🌐';
+            if (titleEl) titleEl.textContent = 'Custom IPTV Playlist';
+            if (subEl) subEl.textContent = 'Load remote M3U URL or select a quick global feed';
+        } else {
+            // 'popular' or 'all'
+            this.renderIptvCountries();
+            if (this.iptvState.activeCountry) {
+                this.selectIptvCountry(this.iptvState.activeCountry);
+            }
+        }
+    }
+
+    async loadCustomM3u(url) {
+        const grid = this.elements.iptvChannelGrid || document.getElementById('iptvChannelGrid');
+        const countBadge = this.elements.iptvActiveCountBadge || document.getElementById('iptvActiveCountBadge');
+
+        if (countBadge) countBadge.textContent = 'Fetching...';
+        if (grid) {
+            grid.innerHTML = `
+                <div class="iptv-state-message">
+                    <div class="iptv-spinner"></div>
+                    <div style="font-weight: 600;">Downloading M3U Playlist</div>
+                    <div style="font-size: 0.78rem; color: var(--text-tertiary); max-width: 320px;">Fetching and indexing channels from: ${url}</div>
+                </div>
+            `;
+        }
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+
+            const text = await res.text();
+            const channels = this.parseM3u(text, { code: 'CUSTOM', name: 'Custom Playlist', flag: '🌐' });
+
+            this.iptvState.currentChannels = channels;
+            if (countBadge) countBadge.textContent = `${channels.length} Channels`;
+
+            const titleEl = this.elements.iptvActiveCountryTitle || document.getElementById('iptvActiveCountryTitle');
+            if (titleEl) titleEl.textContent = `Custom Feed (${channels.length} Channels)`;
+
+            this.renderIptvChannels();
+            this.showToast(`Loaded ${channels.length} channels from playlist`, 'success', 'Custom IPTV');
+
+        } catch (e) {
+            console.error('❌ Failed to load custom M3U:', e);
+            if (countBadge) countBadge.textContent = 'Error';
+            if (grid) {
+                grid.innerHTML = `
+                    <div class="iptv-state-message">
+                        <span class="material-symbols-rounded">error</span>
+                        <div style="font-weight: 600;">Failed to Load Playlist</div>
+                        <div style="font-size: 0.78rem; color: var(--text-tertiary);">The remote playlist could not be fetched. Check URL or CORS permissions.</div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    updateIptvNowPlayingFooter() {
+        const titleEl = this.elements.iptvNowPlayingTitle || document.getElementById('iptvNowPlayingTitle');
+        const pill = this.elements.iptvNowPlayingPill || document.getElementById('iptvNowPlayingPill');
+        const indicator = pill ? pill.querySelector('.now-playing-indicator') : null;
+
+        const current = this.iptvState.currentlyPlayingChannel;
+        if (current && titleEl) {
+            titleEl.innerHTML = `Streaming: <strong>${current.name}</strong> • ${current.countryName}`;
+            if (indicator) {
+                indicator.classList.add('live');
+                const label = indicator.querySelector('.now-playing-label');
+                if (label) label.textContent = 'STREAMING LIVE';
+            }
+        } else if (titleEl) {
+            titleEl.textContent = 'Select any channel above to start watching live broadcast';
+            if (indicator) {
+                indicator.classList.remove('live');
+                const label = indicator.querySelector('.now-playing-label');
+                if (label) label.textContent = 'STANDBY';
+            }
+        }
     }
 }
 
