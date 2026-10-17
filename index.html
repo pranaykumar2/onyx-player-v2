@@ -705,8 +705,20 @@
                         </div>
                     </div>
 
+                    <!-- Mobile Segmented Navigation Switcher (Shown on <= 768px) -->
+                    <div class="iptv-mobile-nav-switcher" id="iptvMobileNavSwitcher">
+                        <button class="mobile-switch-btn active" id="iptvMobileTabChannels" data-view="channels">
+                            <span class="material-symbols-rounded">live_tv</span>
+                            <span>Channels</span>
+                        </button>
+                        <button class="mobile-switch-btn" id="iptvMobileTabCountries" data-view="countries">
+                            <span class="material-symbols-rounded">public</span>
+                            <span>Countries</span>
+                        </button>
+                    </div>
+
                     <!-- IPTV Modal Body: Dual Pane -->
-                    <div class="modal-body iptv-modal-body">
+                    <div class="modal-body iptv-modal-body" id="iptvModalBody" data-mobile-view="channels">
                         
                         <!-- Left Navigation Sidebar: Countries & Feeds -->
                         <aside class="iptv-sidebar">
@@ -762,6 +774,10 @@
                                         <div class="active-country-title-row">
                                             <h3 class="active-country-title" id="iptvActiveCountryTitle">United States</h3>
                                             <span class="active-country-count-badge" id="iptvActiveCountBadge">Loading...</span>
+                                            <button class="mobile-change-country-pill" id="mobileChangeCountryBtn" title="Change Country">
+                                                <span class="material-symbols-rounded">public</span>
+                                                <span>Change</span>
+                                            </button>
                                         </div>
                                         <span class="active-country-sub" id="iptvActiveCountrySub">Official live broadcast streams</span>
                                     </div>

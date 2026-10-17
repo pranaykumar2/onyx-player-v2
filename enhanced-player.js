@@ -395,7 +395,12 @@ class ONYXEnhancedPlayer {
             iptvNowPlayingTitle: '#iptvNowPlayingTitle',
             iptvCloseAndWatchBtn: '#iptvCloseAndWatchBtn',
             iptvTotalChannelsCount: '#iptvTotalChannelsCount',
-            contextIptv: '#contextIptv'
+            contextIptv: '#contextIptv',
+            iptvMobileNavSwitcher: '#iptvMobileNavSwitcher',
+            iptvMobileTabChannels: '#iptvMobileTabChannels',
+            iptvMobileTabCountries: '#iptvMobileTabCountries',
+            iptvModalBody: '#iptvModalBody',
+            mobileChangeCountryBtn: '#mobileChangeCountryBtn'
         };
 
         this.elements = {};
@@ -5592,6 +5597,10 @@ class ONYXEnhancedPlayer {
             this.loadIptvCountryChannels(this.iptvState.activeCountry.code);
         }
 
+        if (window.innerWidth <= 768) {
+            this.switchIptvMobileView('channels');
+        }
+
         this.updateIptvNowPlayingFooter();
     }
 
@@ -5614,6 +5623,21 @@ class ONYXEnhancedPlayer {
                 el.addEventListener('click', () => this.switchIptvTab(tab));
             }
         });
+
+        // Mobile Segmented Switcher (Channels vs Countries on <= 768px)
+        const mobileTabChannels = this.elements.iptvMobileTabChannels || document.getElementById('iptvMobileTabChannels');
+        const mobileTabCountries = this.elements.iptvMobileTabCountries || document.getElementById('iptvMobileTabCountries');
+        const changeCountryBtn = this.elements.mobileChangeCountryBtn || document.getElementById('mobileChangeCountryBtn');
+
+        if (mobileTabChannels) {
+            mobileTabChannels.addEventListener('click', () => this.switchIptvMobileView('channels'));
+        }
+        if (mobileTabCountries) {
+            mobileTabCountries.addEventListener('click', () => this.switchIptvMobileView('countries'));
+        }
+        if (changeCountryBtn) {
+            changeCountryBtn.addEventListener('click', () => this.switchIptvMobileView('countries'));
+        }
 
         // Country Search Input with debounce
         const countrySearch = this.elements.iptvCountrySearch || document.getElementById('iptvCountrySearch');
@@ -5884,6 +5908,11 @@ class ONYXEnhancedPlayer {
 
         // Highlight in country list
         this.renderIptvCountries();
+
+        // Switch to channels view on mobile when country is selected
+        if (window.innerWidth <= 768) {
+            this.switchIptvMobileView('channels');
+        }
 
         // Load channels
         this.loadIptvCountryChannels(country.code);
@@ -6243,8 +6272,10 @@ class ONYXEnhancedPlayer {
 
         if (tabName === 'favorites') {
             this.renderIptvFavorites();
+            if (window.innerWidth <= 768) this.switchIptvMobileView('channels');
         } else if (tabName === 'recent') {
             this.renderIptvRecent();
+            if (window.innerWidth <= 768) this.switchIptvMobileView('channels');
         } else if (tabName === 'custom') {
             // Setup master feed placeholder view
             const titleEl = this.elements.iptvActiveCountryTitle || document.getElementById('iptvActiveCountryTitle');
@@ -6253,12 +6284,29 @@ class ONYXEnhancedPlayer {
             if (flagEl) flagEl.textContent = '🌐';
             if (titleEl) titleEl.textContent = 'Custom IPTV Playlist';
             if (subEl) subEl.textContent = 'Load remote M3U URL or select a quick global feed';
+            if (window.innerWidth <= 768) this.switchIptvMobileView('channels');
         } else {
             // 'popular' or 'all'
             this.renderIptvCountries();
             if (this.iptvState.activeCountry) {
                 this.selectIptvCountry(this.iptvState.activeCountry);
             }
+        }
+    }
+
+    switchIptvMobileView(viewName) {
+        const body = this.elements.iptvModalBody || document.getElementById('iptvModalBody');
+        const tabChannels = this.elements.iptvMobileTabChannels || document.getElementById('iptvMobileTabChannels');
+        const tabCountries = this.elements.iptvMobileTabCountries || document.getElementById('iptvMobileTabCountries');
+
+        if (body) {
+            body.setAttribute('data-mobile-view', viewName);
+        }
+        if (tabChannels) {
+            tabChannels.classList.toggle('active', viewName === 'channels');
+        }
+        if (tabCountries) {
+            tabCountries.classList.toggle('active', viewName === 'countries');
         }
     }
 
